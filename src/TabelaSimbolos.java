@@ -3,10 +3,14 @@ import java.io.FileNotFoundException;
 import java.util.*;
 
 public class TabelaSimbolos {
-    List<LinhaTabela> tabela; // TODO TRANSFORMAR EM TABELA HASH
+    LinhaTabela[] tabela;
+
+    int tamTabela;
 
     TabelaSimbolos() {
-        tabela = new ArrayList<>();
+        tamTabela = 1000;
+
+        tabela = new LinhaTabela[tamTabela];
 
         preenchePalavrasReservadas();
     }
@@ -20,19 +24,17 @@ public class TabelaSimbolos {
                 String data = myReader.nextLine();
 
                 String[] extractedData = data.split("\\.");
-                int tokenPos = Integer.parseInt(extractedData[0]);
                 String tokenName = extractedData[1].trim();
 
-                Token newToken = new Token(tokenPos, tokenName);
-                List<Lexema> lexemas = new ArrayList<>();
+                int pos = hash(tokenName);
+                LinhaTabela linhaTabela = tabela[pos];
 
-                if(!(tokenName.equals("CONST") || tokenName.equals("ID"))){
-                    lexemas.add(new Lexema(tokenName));
+                if(linhaTabela == null){
+                    linhaTabela = new LinhaTabela();
                 }
 
-                tabela.add(new LinhaTabela(newToken, lexemas));
-
-//                System.out.println(tokenPos + ". " + tokenName);
+                linhaTabela.preenche(tokenName);
+                tabela[pos] = linhaTabela;
             }
 
             myReader.close();
@@ -43,39 +45,67 @@ public class TabelaSimbolos {
     }
 
     public Integer buscaToken(String lexema){
-        for(LinhaTabela linha : tabela){
-            Optional<Lexema> lexemaEncontrado = linha.lexemas.stream().filter(lexemaAtual -> lexemaAtual.nome.equals(lexema)).findFirst();
+        int pos = hash(lexema);
 
-            if(lexemaEncontrado.orElse(null) != null){
-                return tabela.indexOf(linha);
+        LinhaTabela linhaTabela = tabela[pos];
+
+        // se for palavra reservada
+        if(linhaTabela != null){
+            if(linhaTabela.busca(lexema) != null){
+                return pos;
+            }
+        }
+
+        pos = hash("ID");
+        linhaTabela = tabela[pos];
+
+        if(linhaTabela != null){
+            if(linhaTabela.buscaIdentificador(lexema) != null){
+                return pos;
             }
         }
 
         return null;
     }
 
-    public Integer insereLexema(String tokenName, Lexema lexema){
-        LinhaTabela linhaDesejada = tabela.stream().filter(lt -> lt.token.nome.equals(tokenName)).findFirst().orElse(null);
+    public int insereLexema(String tokenName, Lexema lexema){
+        int pos = hash(tokenName);
 
-        if(linhaDesejada == null){
-            return null;
+        LinhaTabela linhaTabela = tabela[pos];
+        linhaTabela.insere(tokenName, lexema);
+
+        return pos;
+    }
+
+    public int hash(String lexema){
+        int soma = 0;
+
+        for(char c : lexema.toCharArray()){
+            soma += c;
         }
 
-        linhaDesejada.lexemas.add(lexema);
-
-        return tabela.indexOf(linhaDesejada);
+        return soma % tamTabela;
     }
 
     public static void main(String[] args) {
         TabelaSimbolos tabelaSimbolos = new TabelaSimbolos();
 
         System.out.println(tabelaSimbolos.insereLexema("ID", new Lexema("testeVar")));
+        System.out.println(tabelaSimbolos.insereLexema("ID", new Lexema("variavel2")));
+        System.out.println(tabelaSimbolos.insereLexema("ID", new Lexema("variavel3")));
+        System.out.println(tabelaSimbolos.insereLexema("ID", new Lexema("variavel4")));
 
         int pos = tabelaSimbolos.buscaToken("testeVar");
         System.out.println(pos);
 
-        System.out.println(tabelaSimbolos.tabela.get(pos));
+        System.out.println(tabelaSimbolos.tabela[pos]);
 
-        System.out.println("test".hashCode());
+        LinhaTabela[] aNew = tabelaSimbolos.tabela;
+        for (int i = 0; i < aNew.length; i++) {
+            LinhaTabela linhaTabela = aNew[i];
+            if (linhaTabela != null) {
+                System.out.println(linhaTabela + " " + i);
+            }
+        }
     }
 }

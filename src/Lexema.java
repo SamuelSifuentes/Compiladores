@@ -1,5 +1,6 @@
 public class Lexema {
     String nome;
+    String tipo;
 
     public Lexema(String tokenName) {
         this.nome = tokenName;
