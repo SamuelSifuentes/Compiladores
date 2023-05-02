@@ -1,0 +1,57 @@
+S -> {D* | C }* 'fim_arquivo'
+
+
+
+C -> C1 | C2 ';'
+C1 -> for '(' C ';' E ';' C ')' A | if '(' E ')' B
+C2 -> readln '(' [-]id ')'| write '(' E [G] ')' | writeln '(' E [G] ')' '\n'
+
+Expressão
+E -> E1 [( = | <> | < | <= | >= | > ) E1]
+E1 -> [-] E2 {(+ | - | or) E2}*
+E2 -> E3 {(* | (div | /) | mod | and) E3}
+E3 -> not E4 | E4
+E4 -> interger '(' E5 ')'| real '(' E5 ')' | E5
+E5 -> const | true | false | id [ '[' E ']' ] | '(' E ')'
+
+Comandos
+
+
+A -> C | begin C* end
+B -> A | begin C* end else A | C else A
+G -> {',' E}+
+D -> D1 | D2 | D3 | D4
+D4 -> 'integer' ( id [ '[' E S -> {D* | C }* 'fim_arquivo'
+                             C -> C1 | C2 ';'
+                             C1 -> for '(' C ';' E ';' C ')' A | if '(' E ')' B
+                             C2 -> readln '(' [-]id ')'| write '(' E [G] ')' | writeln '(' E [G] ')' '\n'
+                             E -> E1 [( = | <> | < | <= | >= | > ) E1]
+                             E1 -> [-] E2 {(+ | - | or) E2}*
+                             E2 -> E3 {(* | (div | /) | mod | and) E3}
+                             E3 -> not E4 | E4
+                             E4 -> interger '(' E5 ')'| real '(' E5 ')' | E5
+                             E5 -> const | true | false | id [ '[' E ']' ] | '(' E ')'
+                             A -> C | begin C* end
+                             B -> A | begin C* end else A | C else A
+                             G -> {',' E}+
+                             D -> D1 | D2 | D3 | D4
+                             D4 -> 'integer' ( id [ '[' E ']' ] [H] ';' | [final] id = E ';' )
+                             D1 -> 'real' ( id [ '[' E ']' ] [H] ';' | [final] id = E ';' )
+                             D2 -> 'char' ( id [ '[' E ']' ] [H1] ';' | [final] id = const ';' )
+                             D3 -> 'boolean' ( id [ '[' E ']' ] [H2] ';' | [final] id = I ';' )
+                             I -> true | false
+                             H -> {',' id ([ '[' const | id ']' ] | [ = E])}+
+                             H1 -> {',' id ([ '[' const | id ']' ] [ = const])}+
+D1 -> 'real' ( id [ '[' E ']' ] [H] ';' | [final] id = E ';' )
+D2 -> 'char' ( id [ '[' E ']' ] [H1] ';' | [final] id = const ';' )
+D3 -> 'boolean' ( id [ '[' E ']' ] [H2] ';' | [final] id = I ';' )
+I -> true | false
+H -> {',' id ([ '[' const | id ']' ] | [ = E])}+
+H1 -> {',' id ([ '[' const | id ']' ] [ = const])}+
+H2 -> {',' id ([ '[' const | id ']' ] [ = I])}+
+
+
+
+declaração
+comando
+expressao

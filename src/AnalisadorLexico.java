@@ -9,11 +9,11 @@ public class AnalisadorLexico {
 
     int linhaAtual = 1;
 
-    AnalisadorLexico(){
+    AnalisadorLexico(String caminhoArquivo){
         tabelaSimbolos = new TabelaSimbolos();
 
         try {
-            reader = new PushbackReader(new FileReader("resources/codigo.txt"));
+            reader = new PushbackReader(new FileReader(caminhoArquivo));
 
         } catch (FileNotFoundException e) {
             System.out.println("Erro ao ler arquivo");
@@ -505,7 +505,7 @@ public class AnalisadorLexico {
     }
 
     public static void main(String[] args) {
-        AnalisadorLexico analisadorLexico = new AnalisadorLexico();
+        AnalisadorLexico analisadorLexico = new AnalisadorLexico("resources/codigo.txt");
 
         try {
             RegistroLexico reg;
