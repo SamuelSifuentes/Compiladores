@@ -4,7 +4,10 @@ import java.util.*;
 public class AnalisadorLexico {
     TabelaSimbolos tabelaSimbolos;
 
+    // Reader que permite a devolucão de carateres ao buffer
     PushbackReader reader;
+
+    int linhaAtual = 1;
 
     AnalisadorLexico(){
         tabelaSimbolos = new TabelaSimbolos();
@@ -16,15 +19,17 @@ public class AnalisadorLexico {
             System.out.println("Erro ao ler arquivo");
             e.printStackTrace();
         }
+
     }
 
-    public RegistroLexico analisar() throws IOException{
+    public RegistroLexico analisar() throws IOException, LexicalException {
         int currentState = 1;
         String lexema = "";
         RegistroLexico registroLexico = new RegistroLexico();
 
-        int i = reader.read();
+        int i = reader.read(); // retornará -1 caso não haja um caracter a ser lido. Caso haja, salva o caracter como um inteiro na variavel i
         while (i != -1) {
+            // Estado final. Uma vez que o compilador léxico chegue nesse estado, resta somente retornar a analise feita para o próx token
             if(currentState == 3){
                 return registroLexico;
             }
@@ -32,12 +37,16 @@ public class AnalisadorLexico {
             char c = (char) i;
             lexema += c;
 
+            // Estado inicial
             if(currentState == 1){
-                if(c == '\n' || c == ' '){
+                if (c == '\n') {
+                    linhaAtual++;
                     lexema = "";
                 }
-
-                if((c >= 71 && c <= 90) || c == '_' || (c >= 97 && c <= 122)){
+                else if (c == ' ') {
+                    lexema = "";
+                }
+                else if((c >= 71 && c <= 90) || c == '_' || (c >= 97 && c <= 122)){
                     currentState = 2;
                 }
                 else if(c == '='){
@@ -73,11 +82,15 @@ public class AnalisadorLexico {
                 else if(c == '"'){
                     currentState = 26;
                 }
+                else {
+                    throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
+                }
             }
 
+            // Estado inicial da identificacão de IDs e palavras reservadas
             else if(currentState == 2){
                 if(c != '_' && !(c >= 65 && c <= 90) && !(c >= 97 && c <= 122) && !(c >= 48 && c <= 57)) {
-                    currentState = 3; // TODO PRA CASO SEJA DIFERENTE DISSO, DISPARAR ERRO
+                    currentState = 3;
 
                     reader.unread(c); // volta o char pro buffer
                     lexema = lexema.substring(0, lexema.length() - 1);
@@ -88,6 +101,7 @@ public class AnalisadorLexico {
                 }
             }
 
+            // Estado para a identificacão do token = e ==
             else if (currentState == 4){
                 currentState = 3;
                 if(c == '='){
@@ -105,6 +119,7 @@ public class AnalisadorLexico {
                 }
             }
 
+            // Estado para a identificacão dos tokens '(', ')', ',', '+', '*', '/', ';', '[', ']'
             else if(currentState == 5){
                 currentState = 3;
 
@@ -116,6 +131,7 @@ public class AnalisadorLexico {
                 continue;
             }
 
+            // Estado para a identificacão de comentários
             else if(currentState == 6){
                 if(c == '}'){
                     currentState = 1;
@@ -123,6 +139,7 @@ public class AnalisadorLexico {
                 }
             }
 
+            // Estado para a identificacão dos tokens de <, <= e <>
             else if(currentState == 7){
                 if(c == '>'){
                     currentState = 3;
@@ -147,6 +164,7 @@ public class AnalisadorLexico {
                 }
             }
 
+            // Estado para a identificacão dos tokens de > e >=
             else if(currentState == 8){
                 if(c == '='){
                     currentState = 3;
@@ -165,6 +183,7 @@ public class AnalisadorLexico {
                 }
             }
 
+            // Estado de inicio de identificacão de constantes inteiras, reais ou hexadecimais
             else if(currentState == 9){
                 if(c >= 48 && c <= 57){
                     currentState = 13;
@@ -188,12 +207,18 @@ public class AnalisadorLexico {
                 }
             }
 
+            // Estado de identificacão de constantes reais
             else if(currentState == 10){
                 if(c >= 48 && c <=57){
                     currentState = 12;
                 }
+                else{
+                    throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
+                }
             }
 
+
+            // Estado de identificacão de constantes inteiras ou reais negativas, ou do token -
             else if(currentState == 11){
                 if(c >= 48 && c <= 57){
                     currentState = 14;
@@ -212,6 +237,7 @@ public class AnalisadorLexico {
                 }
             }
 
+            // Estado de identificacão de constantes inteiras ou reais
             else if(currentState == 12){
                 if(c == 'e') {
                     currentState = 20;
@@ -229,6 +255,7 @@ public class AnalisadorLexico {
                 }
             }
 
+            // Estado de identificacão de constantes hexadecimais, inteiras ou reais
             else if(currentState == 13){
                 if(c >= 48 && c <= 57){
                     currentState = 14;
@@ -257,6 +284,7 @@ public class AnalisadorLexico {
                 }
             }
 
+            // Estado de identificacão de constantes inteiras
             else if(currentState == 14){
                 if(c == '.'){
                     currentState = 10;
@@ -274,15 +302,20 @@ public class AnalisadorLexico {
                 }
             }
 
+            // Estado de identificacão de constantes hexadecimais, IDs ou palavras reservadas
             else if(currentState == 15){
                 if(c == 'h'){
                     currentState = 24;
                 }
-                if(c >= 71 && c <= 90){
+                else if((c >= 71 && c <= 90) || (c >= 97 && c <= 122) || c == '_'){
                     currentState = 2;
+                }
+                else{
+                    throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
                 }
             }
 
+            // Estado de identificacão de constantes hexadecimais, IDs ou palavras reservadas
             else if(currentState == 16){
                 if(c >= 65 && c <= 70){
                     currentState = 15;
@@ -290,26 +323,38 @@ public class AnalisadorLexico {
                 else if(c >= 48 && c <=57){
                     currentState = 17;
                 }
-                else if(c >= 71 && c <= 90){
+                else if(c == '_' || (c >= 71 && c <= 90) || (c >= 97 && c <= 122)){
                     currentState = 2;
+                }
+                else{
+                    throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
                 }
             }
 
+            // Estado de identificacão de constantes hexadecimais, IDs ou palavras reservadas
             else if(currentState == 17){
                 if(c == 'h'){
                     currentState = 24;
                 }
-                else if(c >= 71 && c <= 90){
+                else if((c >= 71 && c <= 90) || c == '_' || (c >= 97 && c <= 122)){
                     currentState = 2;
+                }
+                else{
+                    throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
                 }
             }
 
+            // Estado de identificacão de constantes alfanuméricas para caracteres
             else if(currentState == 18){
                 if(c >= 32 && c <= 126){
                     currentState = 19;
                 }
+                else{
+                    throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
+                }
             }
 
+            // Estado de identificacão de constantes alfanuméricas para caracteres
             else if(currentState == 19){
                 if(c == '\''){
                     currentState = 3;
@@ -319,8 +364,12 @@ public class AnalisadorLexico {
                     registroLexico.valor = lexema;
                     continue;
                 }
+                else{
+                    throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
+                }
             }
 
+            // Estado de identificacão de notacão cientifica em constantes reais
             else if(currentState == 20){
                 if(c == '-'){
                     currentState = 25;
@@ -328,8 +377,12 @@ public class AnalisadorLexico {
                 else if(c >= 48 && c <= 57){
                     currentState = 21;
                 }
+                else{
+                    throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
+                }
             }
 
+            // Estado de identificacão de notacão cientifica em constantes reais
             else if(currentState == 21){
                 if(!(c >= 48 && c <= 57)){
                     currentState = 3;
@@ -350,6 +403,7 @@ public class AnalisadorLexico {
                 }
             }
 
+           // Estado de identificacão de constantes de strings
            else if(currentState == 23){
                if(c == '"'){
                    currentState = 3;
@@ -359,8 +413,16 @@ public class AnalisadorLexico {
                    registroLexico.valor = lexema;
                    continue;
                }
+               else if(c >= 32 && c <= 126){
+                   i = reader.read(); // le o prox valor em inteiro do char
+                   continue;
+               }
+               else{
+                   throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
+               }
            }
 
+           // Estado de identificacão de constantes hexadecimais, IDs ou palavras reservadas
            else if(currentState == 24){
                 if((c >= 71 && c <= 90) || (c >= 48 && c <=57) || (c >= 97 && c <= 122) || (c == '_')){
                     currentState = 2;
@@ -378,15 +440,23 @@ public class AnalisadorLexico {
                 }
            }
 
+           // Estado de identificacão de notacão cientifica negativa em constantes reais
            else if(currentState == 25){
                if(c >= 48 && c <= 57){
                    currentState = 21;
                }
+               else{
+                   throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
+               }
            }
 
+           // Estado de identificacão de constantes de strings
            else if(currentState == 26){
                if(c >= 32 && c <= 126){
                    currentState = 23;
+               }
+               else{
+                   throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
                }
            }
 
@@ -394,7 +464,15 @@ public class AnalisadorLexico {
            i = reader.read(); // le o prox valor em inteiro do char
         }
 
-        return null;
+        if(currentState != 1){
+           throw new LexicalException(linhaAtual, LexicalErrorEnum.FIM_DE_ARQUIVO_INESPERADO);
+        }
+
+        registroLexico.token = new Token("FIM_DE_ARQUIVO");
+        registroLexico.lexema = new Lexema("FIM_DE_ARQUIVO");
+        registroLexico.pos = tabelaSimbolos.buscaToken("FIM_DE_ARQUIVO");
+
+        return registroLexico;
     }
 
     private void checarTabelaSimbolos(String lexema, RegistroLexico registroLexico) {
@@ -404,7 +482,7 @@ public class AnalisadorLexico {
         if(pos != null){
             LinhaTabela linhaTabela = tabelaSimbolos.tabela[pos];
 
-            if(linhaTabela.entradas.size() > 1){
+            if(linhaTabela.entradas.size() > 1){ // Caso tenha acontecido um conflito, é necessário verificar qual das entradas salvas é referente ao token sendo buscado
                 Set<Map.Entry<String, List<Lexema>>> entradas = linhaTabela.entradas.entrySet();
 
                 for(Map.Entry<String, List<Lexema>> entrada : entradas){
@@ -414,7 +492,7 @@ public class AnalisadorLexico {
                     }
                 }
             }
-            else{
+            else{ // Caso não tenha conflito, basta salvar o token salvo na posicão encontrada
                 registroLexico.token = new Token((String) linhaTabela.entradas.keySet().toArray()[0]);
             }
 
@@ -435,8 +513,8 @@ public class AnalisadorLexico {
                 reg = analisadorLexico.analisar();
 
                 System.out.println(reg);
-            } while(reg != null);
-        } catch (IOException e) {
+            } while(!reg.token.nome.equals("FIM_DE_ARQUIVO"));
+        } catch (IOException | LexicalException e) {
             throw new RuntimeException(e);
         }
     }

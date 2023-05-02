@@ -2,6 +2,7 @@
 
 integer n;
 char nome[40];
+nome[0] = 'a';
 final MAXITER=10;
 real percentual=.0e0;
 char hexa = AFh;
@@ -10,6 +11,7 @@ char char_digito = '0';
 real real_oficial=.10; *
 real real_quase_oficial = 10.30;
 real real_muito_oficial = 10.30e-130
+nome = 3, 4, 5, 7
 
 
 write("Digite seu nome: ");

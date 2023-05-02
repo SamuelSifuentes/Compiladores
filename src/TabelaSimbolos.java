@@ -3,9 +3,9 @@ import java.io.FileNotFoundException;
 import java.util.*;
 
 public class TabelaSimbolos {
-    LinhaTabela[] tabela;
+    public LinhaTabela[] tabela;
 
-    int tamTabela;
+    public int tamTabela;
 
     TabelaSimbolos() {
         tamTabela = 1000;

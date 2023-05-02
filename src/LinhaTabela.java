@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class LinhaTabela {
 
-    Map<String, List<Lexema>> entradas;
+    public Map<String, List<Lexema>> entradas;
 
     public LinhaTabela(){
         entradas = new HashMap<>();
