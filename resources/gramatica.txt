@@ -1,55 +1,36 @@
-S -> {D* | C }* 'fim_arquivo'
-
-
-
-C -> C1 | C2 ';'
-C1 -> for '(' C ';' E ';' C ')' A | if '(' E ')' B
-C2 -> readln '(' [-]id ')'| write '(' E [G] ')' | writeln '(' E [G] ')' '\n'
+S -> {D | C }* 'fim_arquivo'
 
 Expressão
 E -> E1 [( = | <> | < | <= | >= | > ) E1]
 E1 -> [-] E2 {(+ | - | or) E2}*
 E2 -> E3 {(* | (div | /) | mod | and) E3}
 E3 -> not E4 | E4
-E4 -> interger '(' E5 ')'| real '(' E5 ')' | E5
+E4 -> integer '(' E5 ')' | real '(' E5 ')' | E5
 E5 -> const | true | false | id [ '[' E ']' ] | '(' E ')'
 
 Comandos
-
-
-A -> C | begin C* end
-B -> A | begin C* end else A | C else A
+C -> C1 | C2 ';' | C3 ';'
+C0 -> [C1 | C2 | C3]
+C1 -> for '(' C0 ';' E ';'C0 ')' A | if '(' E ')' A [else A]
+C2 -> readln '(' [-]id ')'| write '(' E [G] ')' | writeln '(' E [G] ')' TINHA UM \N AQUI TIREI
+C3 -> id[ '[' E ']' ] = E
+A -> begin C* end | C
 G -> {',' E}+
-D -> D1 | D2 | D3 | D4
-D4 -> 'integer' ( id [ '[' E S -> {D* | C }* 'fim_arquivo'
-                             C -> C1 | C2 ';'
-                             C1 -> for '(' C ';' E ';' C ')' A | if '(' E ')' B
-                             C2 -> readln '(' [-]id ')'| write '(' E [G] ')' | writeln '(' E [G] ')' '\n'
-                             E -> E1 [( = | <> | < | <= | >= | > ) E1]
-                             E1 -> [-] E2 {(+ | - | or) E2}*
-                             E2 -> E3 {(* | (div | /) | mod | and) E3}
-                             E3 -> not E4 | E4
-                             E4 -> interger '(' E5 ')'| real '(' E5 ')' | E5
-                             E5 -> const | true | false | id [ '[' E ']' ] | '(' E ')'
-                             A -> C | begin C* end
-                             B -> A | begin C* end else A | C else A
-                             G -> {',' E}+
-                             D -> D1 | D2 | D3 | D4
-                             D4 -> 'integer' ( id [ '[' E ']' ] [H] ';' | [final] id = E ';' )
-                             D1 -> 'real' ( id [ '[' E ']' ] [H] ';' | [final] id = E ';' )
-                             D2 -> 'char' ( id [ '[' E ']' ] [H1] ';' | [final] id = const ';' )
-                             D3 -> 'boolean' ( id [ '[' E ']' ] [H2] ';' | [final] id = I ';' )
-                             I -> true | false
-                             H -> {',' id ([ '[' const | id ']' ] | [ = E])}+
-                             H1 -> {',' id ([ '[' const | id ']' ] [ = const])}+
-D1 -> 'real' ( id [ '[' E ']' ] [H] ';' | [final] id = E ';' )
-D2 -> 'char' ( id [ '[' E ']' ] [H1] ';' | [final] id = const ';' )
-D3 -> 'boolean' ( id [ '[' E ']' ] [H2] ';' | [final] id = I ';' )
+
+
+
+Declaração
+D -> D1 | D2 | D3 | D4 | D5
+D1 -> 'integer' (id [ '[' E ']' ] [H] ';' | id = E [H] ';')
+D2 -> 'real' (id [ '[' E ']' ] [H] ';' | id = E [H] ';')
+D3 -> 'char' (id [ '[' E ']' ] [H1] ';' | id = E [H1] ';')
+D4 -> 'boolean' (id [ '[' E ']' ] [H2] ';' | id = E [H2] ';')
+D5 -> 'final' (id [H3] ';' | id = E [H3] ';')
 I -> true | false
-H -> {',' id ([ '[' const | id ']' ] | [ = E])}+
+H -> {',' id [ '[' const | id ']' ] | [ = E]}+
 H1 -> {',' id ([ '[' const | id ']' ] [ = const])}+
 H2 -> {',' id ([ '[' const | id ']' ] [ = I])}+
-
+H3 -> {',' id [ = E5]}+
 
 
 declaração

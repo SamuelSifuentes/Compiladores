@@ -7,16 +7,16 @@ public class LC {
         analisadorSintatico = new AnalisadorSintatico(caminhoArquivo);
     }
 
-    public static void main(String[] args) throws LexicalException, IOException {
+    public static void main(String[] args) throws LexicalException, IOException, SyntaticException {
         int len = args.length;
-        if(len > 1) {
-            String arqL = args[0];
-            String extensao = arqL.substring(arqL.length()-3,arqL.length()-1);
+        if(true) {
+            String arqL = "resources/codigo.l";
+            String extensao = arqL.substring(arqL.length()-2);
 
-            if(extensao.equals(".L")){
+            if(extensao.equals(".l")){
                 LC programa = new LC(arqL);
 
-                programa.analisadorSintatico.analisar();
+            programa.analisadorSintatico.analisar();
             }
             else{
                 throw new RuntimeException("Favor fornecer um arquivo de formato .L");
