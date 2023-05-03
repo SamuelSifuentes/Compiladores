@@ -37,7 +37,7 @@ public class AnalisadorSintatico {
         }
 
         CasaToken("FIM_DE_ARQUIVO");
-        System.out.println("Terminei1!!");
+        System.out.println("Compilacão finalizada.");
     }
 
     // E -> E1 [( = | <> | < | <= | >= | > ) E1]
