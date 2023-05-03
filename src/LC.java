@@ -9,11 +9,11 @@ public class LC {
 
     public static void main(String[] args) throws LexicalException, IOException, SyntaticException {
         int len = args.length;
-        if(true) {
-            String arqL = "resources/codigo.l";
+        if(args.length > 1) {
+            String arqL = args[0];
             String extensao = arqL.substring(arqL.length()-2);
 
-            if(extensao.equals(".l")){
+            if(extensao.equals(".L")){
                 LC programa = new LC(arqL);
 
             programa.analisadorSintatico.analisar();
