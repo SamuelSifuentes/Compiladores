@@ -1,4 +1,4 @@
-{ Exemplo de Programa na linguagem L 
+{ Exemplo de Programa na linguagem L
 
 integer n;
 char nome[40];

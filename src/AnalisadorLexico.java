@@ -23,76 +23,68 @@ public class AnalisadorLexico {
     }
 
     public RegistroLexico analisar() throws IOException, LexicalException {
-        int currentState = 1;
         String lexema = "";
+        int currentState = 1;
+        boolean fimArquivo = false;
+        char c;
         RegistroLexico registroLexico = new RegistroLexico();
 
         int i = reader.read(); // retornará -1 caso não haja um caracter a ser lido. Caso haja, salva o caracter como um inteiro na variavel i
-        while (i != -1) {
+        while (!fimArquivo) {
             // Estado final. Uma vez que o compilador léxico chegue nesse estado, resta somente retornar a analise feita para o próx token
-            if(currentState == 3){
+            if (currentState == 3) {
                 return registroLexico;
             }
 
-            char c = (char) i;
+            if (i == -1) {
+                c = '\n';
+            } else {
+                c = (char) i;
+            }
+
             lexema += c;
 
             // Estado inicial
-            if(currentState == 1){
+            if (currentState == 1) {
                 if (c == '\n') {
                     linhaAtual++;
                     lexema = "";
-                }
-                else if (c == '\r') {
+                } else if (c == '\r') {
                     lexema = "";
-                }
-                else if (c == ' ') {
+                } else if (c == ' ') {
                     lexema = "";
-                }
-                else if((c >= 71 && c <= 90) || c == '_' || (c >= 97 && c <= 122)){
+                } else if ((c >= 71 && c <= 90) || c == '_' || (c >= 97 && c <= 122)) {
                     currentState = 2;
-                }
-                else if(c == '='){
+                } else if (c == '=') {
                     currentState = 4;
-                }
-                else if(List.of(new Character[]{'(', ')', ',', '+', '*', '/', ';', '[', ']'}).contains(c)){
+                } else if (List.of(new Character[]{'(', ')', ',', '+', '*', '/', ';', '[', ']'}).contains(c)) {
                     currentState = 5;
-                }
-                else if(c == '{'){
+                } else if (c == '{') {
                     currentState = 6;
-                }
-                else if(c == '<'){
+                } else if (c == '<') {
                     currentState = 7;
-                }
-                else if(c == '>'){
+                } else if (c == '>') {
                     currentState = 8;
-                }
-                else if(c >= 48 && c <= 57){
+                } else if (c >= 48 && c <= 57) {
                     currentState = 9;
-                }
-                else if(c == '.'){
+                } else if (c == '.') {
                     currentState = 10;
-                }
-                else if(c == '-'){
+                } else if (c == '-') {
                     currentState = 11;
-                }
-                else if(c >= 65 && c <= 70){
+                } else if (c >= 65 && c <= 70) {
                     currentState = 16;
-                }
-                else if(c == '\''){
+                } else if (c == '\'') {
                     currentState = 18;
-                }
-                else if(c == '"'){
+                } else if (c == '"') {
                     currentState = 26;
-                }
-                else {
+                } else {
                     throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
                 }
             }
 
             // Estado inicial da identificacão de IDs e palavras reservadas
-            else if(currentState == 2){
-                if(c != '_' && !(c >= 65 && c <= 90) && !(c >= 97 && c <= 122) && !(c >= 48 && c <= 57)) {
+            else if (currentState == 2) {
+                if (c != '_' && !(c >= 65 && c <= 90) && !(c >= 97 && c <= 122) && !(c >= 48 && c <= 57)) {
                     currentState = 3;
 
                     reader.unread(c); // volta o char pro buffer
@@ -105,14 +97,13 @@ public class AnalisadorLexico {
             }
 
             // Estado para a identificacão do token = e ==
-            else if (currentState == 4){
+            else if (currentState == 4) {
                 currentState = 3;
-                if(c == '='){
+                if (c == '=') {
                     checarTabelaSimbolos(lexema, registroLexico);
 
                     continue;
-                }
-                else {
+                } else {
                     reader.unread(c); // volta o char pro buffer
                     lexema = lexema.substring(0, lexema.length() - 1);
 
@@ -123,7 +114,7 @@ public class AnalisadorLexico {
             }
 
             // Estado para a identificacão dos tokens '(', ')', ',', '+', '*', '/', ';', '[', ']'
-            else if(currentState == 5){
+            else if (currentState == 5) {
                 currentState = 3;
 
                 reader.unread(c); // volta o char pro buffer
@@ -135,28 +126,26 @@ public class AnalisadorLexico {
             }
 
             // Estado para a identificacão de comentários
-            else if(currentState == 6){
-                if(c == '}'){
+            else if (currentState == 6) {
+                if (c == '}') {
                     currentState = 1;
                     lexema = "";
                 }
             }
 
             // Estado para a identificacão dos tokens de <, <= e <>
-            else if(currentState == 7){
-                if(c == '>'){
+            else if (currentState == 7) {
+                if (c == '>') {
                     currentState = 3;
 
                     checarTabelaSimbolos(lexema, registroLexico);
                     continue;
-                }
-                else if(c == '='){
+                } else if (c == '=') {
                     currentState = 3;
 
                     checarTabelaSimbolos(lexema, registroLexico);
                     continue;
-                }
-                else{
+                } else {
                     currentState = 3;
 
                     reader.unread(c); // volta o char pro buffer
@@ -168,14 +157,13 @@ public class AnalisadorLexico {
             }
 
             // Estado para a identificacão dos tokens de > e >=
-            else if(currentState == 8){
-                if(c == '='){
+            else if (currentState == 8) {
+                if (c == '=') {
                     currentState = 3;
 
                     checarTabelaSimbolos(lexema, registroLexico);
                     continue;
-                }
-                else{
+                } else {
                     currentState = 3;
 
                     reader.unread(c); // volta o char pro buffer
@@ -187,17 +175,14 @@ public class AnalisadorLexico {
             }
 
             // Estado de inicio de identificacão de constantes inteiras, reais ou hexadecimais
-            else if(currentState == 9){
-                if(c >= 48 && c <= 57){
+            else if (currentState == 9) {
+                if (c >= 48 && c <= 57) {
                     currentState = 13;
-                }
-                else if(c == '.'){
+                } else if (c == '.') {
                     currentState = 10;
-                }
-                else if(c >= 65 && c <= 70){
+                } else if (c >= 65 && c <= 70) {
                     currentState = 15;
-                }
-                else{
+                } else {
                     currentState = 3;
 
                     reader.unread(c); // volta o char pro buffer
@@ -211,25 +196,22 @@ public class AnalisadorLexico {
             }
 
             // Estado de identificacão de constantes reais
-            else if(currentState == 10){
-                if(c >= 48 && c <=57){
+            else if (currentState == 10) {
+                if (c >= 48 && c <= 57) {
                     currentState = 12;
-                }
-                else{
+                } else {
                     throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
                 }
             }
 
 
             // Estado de identificacão de constantes inteiras ou reais negativas, ou do token -
-            else if(currentState == 11){
-                if(c >= 48 && c <= 57){
+            else if (currentState == 11) {
+                if (c >= 48 && c <= 57) {
                     currentState = 14;
-                }
-                else if(c == '.'){
+                } else if (c == '.') {
                     currentState = 10;
-                }
-                else{
+                } else {
                     currentState = 3;
 
                     reader.unread(c); // volta o char pro buffer
@@ -241,11 +223,10 @@ public class AnalisadorLexico {
             }
 
             // Estado de identificacão de constantes inteiras ou reais
-            else if(currentState == 12){
-                if(c == 'e') {
+            else if (currentState == 12) {
+                if (c == 'e') {
                     currentState = 20;
-                }
-                else if(!(c >= 48 && c <=57)){
+                } else if (!(c >= 48 && c <= 57)) {
                     currentState = 3;
 
                     reader.unread(c); // volta o char pro buffer
@@ -259,22 +240,19 @@ public class AnalisadorLexico {
             }
 
             // Estado de identificacão de constantes hexadecimais, inteiras ou reais
-            else if(currentState == 13){
-                if(c >= 48 && c <= 57){
+            else if (currentState == 13) {
+                if (c >= 48 && c <= 57) {
                     currentState = 14;
-                }
-                else if(c == 'h'){
+                } else if (c == 'h') {
                     currentState = 3;
 
                     registroLexico.token = new Token("CONST");
                     registroLexico.tipo = "CHAR";
                     registroLexico.valor = lexema;
                     continue;
-                }
-                else if(c == '.'){
+                } else if (c == '.') {
                     currentState = 10;
-                }
-                else{
+                } else {
                     currentState = 3;
 
                     reader.unread(c); // volta o char pro buffer
@@ -288,11 +266,10 @@ public class AnalisadorLexico {
             }
 
             // Estado de identificacão de constantes inteiras
-            else if(currentState == 14){
-                if(c == '.'){
+            else if (currentState == 14) {
+                if (c == '.') {
                     currentState = 10;
-                }
-                else{
+                } else {
                     currentState = 3;
 
                     reader.unread(c); // volta o char pro buffer
@@ -306,100 +283,87 @@ public class AnalisadorLexico {
             }
 
             // Estado de identificacão de constantes hexadecimais, IDs ou palavras reservadas
-            else if(currentState == 15){
-                if(c == 'h'){
+            else if (currentState == 15) {
+                if (c == 'h') {
                     currentState = 24;
-                }
-                else if((c >= 71 && c <= 90) || (c >= 97 && c <= 122) || c == '_'){
+                } else if ((c >= 71 && c <= 90) || (c >= 97 && c <= 122) || c == '_') {
                     currentState = 2;
-                }
-                else{
+                } else {
                     throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
                 }
             }
 
             // Estado de identificacão de constantes hexadecimais, IDs ou palavras reservadas
-            else if(currentState == 16){
-                if(c >= 65 && c <= 70){
+            else if (currentState == 16) {
+                if (c >= 65 && c <= 70) {
                     currentState = 15;
-                }
-                else if(c >= 48 && c <=57){
+                } else if (c >= 48 && c <= 57) {
                     currentState = 17;
-                }
-                else if(c == '_' || (c >= 71 && c <= 90) || (c >= 97 && c <= 122)){
+                } else if (c == '_' || (c >= 71 && c <= 90) || (c >= 97 && c <= 122)) {
                     currentState = 2;
-                }
-                else if(pertenceAoAlfabeto(c)){
+                } else if (pertenceAoAlfabeto(c)) {
                     reader.unread(c); // volta o char pro buffer
                     lexema = lexema.substring(0, lexema.length() - 1);
 
                     currentState = 2;
-                }
-                else{
+                } else {
                     throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
                 }
             }
 
             // Estado de identificacão de constantes hexadecimais, IDs ou palavras reservadas
-            else if(currentState == 17){
-                if(c == 'h'){
+            else if (currentState == 17) {
+                if (c == 'h') {
                     currentState = 24;
-                }
-                else if((c >= 71 && c <= 90) || c == '_' || (c >= 97 && c <= 122)){
+                } else if ((c >= 71 && c <= 90) || c == '_' || (c >= 97 && c <= 122)) {
                     currentState = 2;
-                }
-                else if(pertenceAoAlfabeto(c)){
+                } else if (pertenceAoAlfabeto(c)) {
                     reader.unread(c); // volta o char pro buffer
                     lexema = lexema.substring(0, lexema.length() - 1);
 
                     currentState = 2;
-                }
-                else{
+                } else {
                     throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
                 }
             }
 
             // Estado de identificacão de constantes alfanuméricas para caracteres
-            else if(currentState == 18){
-                if(c >= 32 && c <= 126){
+            else if (currentState == 18) {
+                if (c >= 32 && c <= 126) {
                     currentState = 19;
-                }
-                else{
+                } else {
                     throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
                 }
             }
 
             // Estado de identificacão de constantes alfanuméricas para caracteres
-            else if(currentState == 19){
-                if(c == '\''){
+            else if (currentState == 19) {
+                if (c == '\'') {
                     currentState = 3;
 
                     registroLexico.token = new Token("CONST");
                     registroLexico.tipo = "CHAR";
                     registroLexico.valor = lexema;
                     continue;
-                }
-                else{
+                } else {
                     throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
                 }
             }
 
             // Estado de identificacão de notacão cientifica em constantes reais
-            else if(currentState == 20){
-                if(c == '-'){
+            else if (currentState == 20) {
+                if (c == '-') {
                     currentState = 25;
-                }
-                else if(c >= 48 && c <= 57){
+                } else if (c >= 48 && c <= 57) {
                     currentState = 21;
-                }
-                else{
+                } else {
                     throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
                 }
             }
 
             // Estado de identificacão de notacão cientifica em constantes reais
-            else if(currentState == 21){
-                if(!(c >= 48 && c <= 57)){
+            else if (currentState == 21) {
+                if (!(c >= 48 && c <= 57)) {
                     currentState = 3;
 
                     reader.unread(c); // volta o char pro buffer
@@ -410,39 +374,34 @@ public class AnalisadorLexico {
                     registroLexico.valor = lexema;
                     continue;
                 }
-            }
-
-            else if(currentState == 22){ // TODO DELETAR?
-                if(c == '\0'){
+            } else if (currentState == 22) { // TODO DELETAR?
+                if (c == '\0') {
                     currentState = 23;
                 }
             }
 
-           // Estado de identificacão de constantes de strings
-           else if(currentState == 23){
-               if(c == '"'){
-                   currentState = 3;
+            // Estado de identificacão de constantes de strings
+            else if (currentState == 23) {
+                if (c == '"') {
+                    currentState = 3;
 
-                   registroLexico.token = new Token("CONST");
-                   registroLexico.tipo = "STRING";
-                   registroLexico.valor = lexema;
-                   continue;
-               }
-               else if(c >= 32 && c <= 126){
-                   i = reader.read(); // le o prox valor em inteiro do char
-                   continue;
-               }
-               else{
-                   throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
-               }
-           }
-
-           // Estado de identificacão de constantes hexadecimais, IDs ou palavras reservadas
-           else if(currentState == 24){
-                if((c >= 71 && c <= 90) || (c >= 48 && c <=57) || (c >= 97 && c <= 122) || (c == '_')){
-                    currentState = 2;
+                    registroLexico.token = new Token("CONST");
+                    registroLexico.tipo = "STRING";
+                    registroLexico.valor = lexema;
+                    continue;
+                } else if (c >= 32 && c <= 126) {
+                    i = reader.read(); // le o prox valor em inteiro do char
+                    continue;
+                } else {
+                    throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
                 }
-                else{
+            }
+
+            // Estado de identificacão de constantes hexadecimais, IDs ou palavras reservadas
+            else if (currentState == 24) {
+                if ((c >= 71 && c <= 90) || (c >= 48 && c <= 57) || (c >= 97 && c <= 122) || (c == '_')) {
+                    currentState = 2;
+                } else {
                     currentState = 3;
 
                     reader.unread(c); // volta o char pro buffer
@@ -453,30 +412,30 @@ public class AnalisadorLexico {
                     registroLexico.valor = lexema;
                     continue;
                 }
-           }
+            }
 
-           // Estado de identificacão de notacão cientifica negativa em constantes reais
-           else if(currentState == 25){
-               if(c >= 48 && c <= 57){
-                   currentState = 21;
-               }
-               else{
-                   throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
-               }
-           }
+            // Estado de identificacão de notacão cientifica negativa em constantes reais
+            else if (currentState == 25) {
+                if (c >= 48 && c <= 57) {
+                    currentState = 21;
+                } else {
+                    throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
+                }
+            }
 
-           // Estado de identificacão de constantes de strings
-           else if(currentState == 26){
-               if(c >= 32 && c <= 126){
-                   currentState = 23;
-               }
-               else{
-                   throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
-               }
-           }
+            // Estado de identificacão de constantes de strings
+            else if (currentState == 26) {
+                if (c >= 32 && c <= 126) {
+                    currentState = 23;
+                } else {
+                    throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
+                }
+            }
 
-
-           i = reader.read(); // le o prox valor em inteiro do char
+            if (i == -1)
+                fimArquivo = true;
+            else
+                i = reader.read(); // le o prox valor em inteiro do char
         }
 
         if(currentState != 1){
