@@ -17,7 +17,7 @@ public class TabelaSimbolos {
 
     private void preenchePalavrasReservadas() {
         try {
-            File myObj = new File("alfabeto.txt");
+            File myObj = new File("src/alfabeto.txt");
             Scanner myReader = new Scanner(myObj);
 
             while (myReader.hasNextLine()) {

@@ -22,7 +22,11 @@ public class AnalisadorSintatico {
             reg = analisadorLexico.analisar();
         }
         else{
-            throw new SyntaticException(-1, SyntaticErrorEnum.TOKEN_NAO_ESPERADO);
+            if(reg.token.nome.equals("FIM_DE_ARQUIVO")){
+                throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.FIM_DE_ARQUIVO);
+            }
+
+            throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.TOKEN_NAO_ESPERADO, reg.lexema.nome);
         }
     }
 
@@ -76,8 +80,11 @@ public class AnalisadorSintatico {
     // E1 -> [-] E2 {(+ | - | or) E2}*
     public void E1() throws LexicalException, IOException, SyntaticException {
 
-        if(reg.token.nome.equals("-")  ) {
+        if(reg.token.nome.equals("-")) {
             CasaToken("-");
+        }
+        else if(reg.token.nome.equals("+")){
+            CasaToken("+");
         }
         E2();
         while (reg.token.nome.equals("+") || reg.token.nome.equals("-") || reg.token.nome.equals("or")){
@@ -118,63 +125,30 @@ public class AnalisadorSintatico {
         }
     }
 
-    // E3 -> not E4 | E4
+    // E3 -> const | ID [ "[" E "]" ] | not E3 | "(" E ")"
     public void E3() throws LexicalException, IOException, SyntaticException {
-        if(reg.token.nome.equals("not")  ) {
-            CasaToken("not");
-            E4();
-        }else{
-            E4();
+        if(reg.token.nome.equals("CONST")){
+            CasaToken("CONST");
         }
-    }
-
-    // E4 -> integer '(' E5 ')' | real '(' E5 ')' | E5
-    public void E4() throws LexicalException, IOException, SyntaticException {
-        if(reg.token.nome.equals("integer")  ) {
-            CasaToken("integer");
-            CasaToken("(");
-            E5();
-            CasaToken(")");
-        }else if(reg.token.nome.equals("real")){
-            CasaToken("real");
-            CasaToken("(");
-            E5();
-            CasaToken(")");
-        }
-        else {
-            E5();
-        }
-    }
-
-    // E5 -> const | true | false | id [ '[' E ']' ] | '(' E ')'
-    public void E5() throws LexicalException, IOException, SyntaticException {
-        String token = reg.token.nome;
-
-        if(token.equals("CONST") || token.equals("true") || token.equals("false") || token.equals("ID") || token.equals("(")){
-            if(token.equals("CONST")) {
-                CasaToken("CONST");
-            }
-            else if(token.equals("true")) {
-                CasaToken("true");
-            }
-            else if(token.equals("false")){
-                CasaToken("false");
-            }
-            else if(token.equals("ID")) {
-                CasaToken("ID");
-                if(reg.token.nome.equals("[")){
-                    CasaToken("[");
-                    E();
-                    CasaToken("]");
-                }
-            }
-            else if(token.equals("(")) {
-                CasaToken("(");
+        else if(reg.token.nome.equals("ID")){
+            CasaToken("ID");
+            if(reg.token.nome.equals("[")){
+                CasaToken("[");
                 E();
-                CasaToken(")");
+                CasaToken("]");
             }
         }
+        else if(reg.token.nome.equals("not")){
+            CasaToken("not");
+            E3();
+        }
+        else if(reg.token.nome.equals("(")){
+            CasaToken("(");
+            E();
+            CasaToken(")");
+        }
     }
+
 
     public void D() throws LexicalException, IOException, SyntaticException {
         switch (reg.token.nome){
@@ -314,7 +288,11 @@ public class AnalisadorSintatico {
                     CasaToken("ID");
                 }
                 else {
-                    throw new SyntaticException(-1, SyntaticErrorEnum.TOKEN_NAO_ESPERADO);
+                    if(reg.token.nome.equals("FIM_DE_ARQUIVO")){
+                        throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.FIM_DE_ARQUIVO);
+                    }
+
+                    throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.TOKEN_NAO_ESPERADO, reg.lexema.nome);
                 }
 
                 CasaToken("]");
@@ -341,7 +319,11 @@ public class AnalisadorSintatico {
                     CasaToken("ID");
                 }
                 else {
-                    throw new SyntaticException(-1, SyntaticErrorEnum.TOKEN_NAO_ESPERADO);
+                    if(reg.token.nome.equals("FIM_DE_ARQUIVO")){
+                        throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.FIM_DE_ARQUIVO);
+                    }
+
+                    throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.TOKEN_NAO_ESPERADO, reg.lexema.nome);
                 }
 
                 CasaToken("]");
@@ -368,7 +350,10 @@ public class AnalisadorSintatico {
                     CasaToken("ID");
                 }
                 else {
-                    throw new SyntaticException(-1, SyntaticErrorEnum.TOKEN_NAO_ESPERADO);
+                    if(reg.token.nome.equals("FIM_DE_ARQUIVO")){
+                        throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.FIM_DE_ARQUIVO);
+                    }
+                    throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.TOKEN_NAO_ESPERADO, reg.lexema.nome);
                 }
 
                 CasaToken("]");
@@ -389,7 +374,7 @@ public class AnalisadorSintatico {
             if (reg.token.nome.equals("=")) {
                 CasaToken("=");
 
-                E5();
+                E3();
             }
         } while (reg.token.nome.equals(","));
     }

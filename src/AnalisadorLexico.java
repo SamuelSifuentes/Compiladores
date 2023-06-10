@@ -43,6 +43,9 @@ public class AnalisadorLexico {
                     linhaAtual++;
                     lexema = "";
                 }
+                else if (c == '\r') {
+                    lexema = "";
+                }
                 else if (c == ' ') {
                     lexema = "";
                 }
@@ -326,6 +329,12 @@ public class AnalisadorLexico {
                 else if(c == '_' || (c >= 71 && c <= 90) || (c >= 97 && c <= 122)){
                     currentState = 2;
                 }
+                else if(pertenceAoAlfabeto(c)){
+                    reader.unread(c); // volta o char pro buffer
+                    lexema = lexema.substring(0, lexema.length() - 1);
+
+                    currentState = 2;
+                }
                 else{
                     throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
                 }
@@ -337,6 +346,12 @@ public class AnalisadorLexico {
                     currentState = 24;
                 }
                 else if((c >= 71 && c <= 90) || c == '_' || (c >= 97 && c <= 122)){
+                    currentState = 2;
+                }
+                else if(pertenceAoAlfabeto(c)){
+                    reader.unread(c); // volta o char pro buffer
+                    lexema = lexema.substring(0, lexema.length() - 1);
+
                     currentState = 2;
                 }
                 else{
@@ -473,6 +488,10 @@ public class AnalisadorLexico {
         registroLexico.pos = tabelaSimbolos.buscaToken("FIM_DE_ARQUIVO");
 
         return registroLexico;
+    }
+
+    private boolean pertenceAoAlfabeto(char c) {
+        return List.of(new Character[]{'(', ')', ',', '+', '*', '/', ';', '[', ']', '>', '<', '='}).contains(c);
     }
 
     private void checarTabelaSimbolos(String lexema, RegistroLexico registroLexico) {

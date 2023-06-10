@@ -8,6 +8,6 @@ public class LexicalException extends Throwable {
     }
 
     public LexicalException(int linhaAtual, LexicalErrorEnum lexicalErrorEnum, char c) {
-        super(linhaAtual + ":" + lexicalErrorEnum.err + " ['" + c + "'].");
+        super(linhaAtual + ":" + lexicalErrorEnum.err + " ['" + (c == '\n'? "\\n" : c == '\r'? "\\r" : c) + "'].");
     }
 }
