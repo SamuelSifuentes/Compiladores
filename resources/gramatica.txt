@@ -8,6 +8,13 @@ E3 -> not E4 | E4
 E4 -> integer '(' E5 ')' | real '(' E5 ')' | E5
 E5 -> const | true | false | id [ '[' E ']' ] | '(' E ')'
 
+Expressão2
+
+E -> E1 [( > | < | >= | <= | == | <>) E1]
+E1 -> [ + | - ] E2 {( + | - | or) E2 }
+E2 -> E3 {(* | ( / | div ) | mod | and) E3}
+E3 -> const | ID [ "[" E "]" ] | not E3 | "(" E ")"
+
 Comandos
 C -> C1 | C2 ';' | C3 ';'
 C0 -> [C1 | C2 | C3]
