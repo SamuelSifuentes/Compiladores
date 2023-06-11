@@ -28,11 +28,11 @@ G -> {',' E}+
 
 Declaração
 D -> D1 | D2 | D3 | D4 | D5
-D1 -> 'integer' (id [ '[' E ']' ] [H] ';' | id = E [H] ';')
-D2 -> 'real' (id [ '[' E ']' ] [H] ';' | id = E [H] ';')
-D3 -> 'char' (id [ '[' E ']' ] [H1] ';' | id = E [H1] ';')
-D4 -> 'boolean' (id [ '[' E ']' ] [H2] ';' | id = E [H2] ';')
-D5 -> 'final' (id [H3] ';' | id = E [H3] ';')
+D1 -> 'integer' (id <1> [ '[' E ']' ] [H] ';' | id = E [H] ';')
+D2 -> 'real'  (id <1> [ '[' E ']' ] [H] ';' | id = E [H] ';')
+D3 -> 'char'  (id |-1-| [ '[' E ']' ] [H1] ';' | id = E [H1] ';')
+D4 -> 'boolean' (id <1> [ '[' E ']' ] [H2] ';' | id = E [H2] ';')
+D5 -> 'final' (id <1> [H3] ';' | id = E [H3] ';')
 I -> true | false
 H -> {',' id [ '[' const | id ']' ] | [ = E]}+
 H1 -> {',' id ([ '[' const | id ']' ] [ = const])}+
@@ -40,6 +40,6 @@ H2 -> {',' id ([ '[' const | id ']' ] [ = I])}+
 H3 -> {',' id [ = E5]}+
 
 
-declaração
-comando
-expressao
+https://docs.google.com/document/d/1I8e3z4MHkuaXVvPwNZE0xy3gCF3LgMnDz8n3YVdmiSk/edit?usp=sharing
+
+

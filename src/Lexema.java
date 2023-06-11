@@ -1,10 +1,16 @@
 public class Lexema {
     public String nome;
+
+    public String classe;
+
     public String tipo;
+
+    public int tamanho;
 
     public Lexema(String tokenName) {
         this.nome = tokenName;
     }
+
 
     @Override
     public String toString() {

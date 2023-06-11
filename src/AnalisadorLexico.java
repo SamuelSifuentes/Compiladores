@@ -37,7 +37,7 @@ public class AnalisadorLexico {
             }
 
             if (i == -1) {
-                c = '\n';
+                c = '\r';
             } else {
                 c = (char) i;
             }
@@ -453,10 +453,9 @@ public class AnalisadorLexico {
         return List.of(new Character[]{'(', ')', ',', '+', '*', '/', ';', '[', ']', '>', '<', '='}).contains(c);
     }
 
-    private void checarTabelaSimbolos(String lexema, RegistroLexico registroLexico) {
+    private void checarTabelaSimbolos(String lexema, RegistroLexico registroLexico) throws LexicalException {
         Integer pos = tabelaSimbolos.buscaToken(lexema);
 
-        registroLexico.lexema = new Lexema(lexema);
         if(pos != null){
             LinhaTabela linhaTabela = tabelaSimbolos.tabela[pos];
 
@@ -466,19 +465,49 @@ public class AnalisadorLexico {
                 for(Map.Entry<String, List<Lexema>> entrada : entradas){
                     if(entrada.getKey().equals(lexema)){
                         registroLexico.token = new Token(entrada.getKey());
+
+                        if(registroLexico.token.nome.equals("ID")){
+                            Lexema aux = entrada.getValue().stream().filter(lex -> lex.nome.equals(lexema)).findFirst().orElse(null);
+
+                            if(aux == null){
+                                throw new LexicalException(linhaAtual, LexicalErrorEnum.LEXEMA_NAO_IDENTIFICADO, lexema);
+                            }
+
+                            registroLexico.lexema = aux;
+                        }
+                        else{
+                            registroLexico.lexema = entrada.getValue().get(0);
+                        }
+
                         break;
                     }
                 }
             }
             else{ // Caso não tenha conflito, basta salvar o token salvo na posicão encontrada
                 registroLexico.token = new Token((String) linhaTabela.entradas.keySet().toArray()[0]);
+
+                if(registroLexico.token.nome.equals("ID")){
+                    Lexema aux = linhaTabela.entradas.values().stream().toList().get(0).stream().filter(lex -> lex.nome.equals(lexema)).findFirst().orElse(null);
+
+                    if(aux == null){
+                        throw new LexicalException(linhaAtual, LexicalErrorEnum.LEXEMA_NAO_IDENTIFICADO, lexema);
+                    }
+
+                    registroLexico.lexema = aux;
+                }
+                else{
+                    registroLexico.lexema = linhaTabela.entradas.values().stream().toList().get(0).get(0);
+                }
             }
 
             registroLexico.pos = pos;
         }
         else{
-            registroLexico.pos = tabelaSimbolos.insereLexema("ID", new Lexema(lexema));
+            Lexema lex =  new Lexema(lexema);
+
+            registroLexico.pos = tabelaSimbolos.insereLexema("ID", lex);
             registroLexico.token = new Token("ID");
+            registroLexico.lexema = lex;
         }
     }
 

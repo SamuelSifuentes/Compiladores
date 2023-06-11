@@ -19,7 +19,7 @@ public class LC {
                 try {
                     programa.analisadorSintatico.analisar();
                 }
-                catch(LexicalException | SyntaticException | IOException e){
+                catch(LexicalException | SyntaticException | IOException | SemanticalException e){
                     System.out.println(e.getMessage());
                 }
             }

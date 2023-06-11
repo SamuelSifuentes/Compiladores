@@ -12,7 +12,12 @@ public class LinhaTabela {
     }
 
     public void preenche(String token){
-        entradas.put(token, new ArrayList<>());
+        Lexema lex = new Lexema(token);
+        List<Lexema> lexemas = new ArrayList<>();
+
+        lexemas.add(lex);
+
+        entradas.put(token, lexemas);
     }
 
     public void insere(String token, Lexema lexema){
