@@ -189,8 +189,8 @@ public class AnalisadorLexico {
                     lexema = lexema.substring(0, lexema.length() - 1);
 
                     registroLexico.token = new Token("CONST");
-                    registroLexico.tipo = "INTEGER";
-                    registroLexico.valor = lexema;
+                    registroLexico.tipoConst = "integer";
+                    registroLexico.valorConst = lexema;
                     continue;
                 }
             }
@@ -233,8 +233,8 @@ public class AnalisadorLexico {
                     lexema = lexema.substring(0, lexema.length() - 1);
 
                     registroLexico.token = new Token("CONST");
-                    registroLexico.tipo = "FLOAT";
-                    registroLexico.valor = lexema;
+                    registroLexico.tipoConst = "real";
+                    registroLexico.valorConst = lexema;
                     continue;
                 }
             }
@@ -247,8 +247,8 @@ public class AnalisadorLexico {
                     currentState = 3;
 
                     registroLexico.token = new Token("CONST");
-                    registroLexico.tipo = "CHAR";
-                    registroLexico.valor = lexema;
+                    registroLexico.tipoConst = "char";
+                    registroLexico.valorConst = lexema;
                     continue;
                 } else if (c == '.') {
                     currentState = 10;
@@ -259,8 +259,8 @@ public class AnalisadorLexico {
                     lexema = lexema.substring(0, lexema.length() - 1);
 
                     registroLexico.token = new Token("CONST");
-                    registroLexico.tipo = "INTEGER";
-                    registroLexico.valor = lexema;
+                    registroLexico.tipoConst = "integer";
+                    registroLexico.valorConst = lexema;
                     continue;
                 }
             }
@@ -276,8 +276,8 @@ public class AnalisadorLexico {
                     lexema = lexema.substring(0, lexema.length() - 1);
 
                     registroLexico.token = new Token("CONST");
-                    registroLexico.tipo = "FLOAT";
-                    registroLexico.valor = lexema;
+                    registroLexico.tipoConst = "real";
+                    registroLexico.valorConst = lexema;
                     continue;
                 }
             }
@@ -342,8 +342,8 @@ public class AnalisadorLexico {
                     currentState = 3;
 
                     registroLexico.token = new Token("CONST");
-                    registroLexico.tipo = "CHAR";
-                    registroLexico.valor = lexema;
+                    registroLexico.tipoConst = "CHAR";
+                    registroLexico.valorConst = lexema;
                     continue;
                 } else {
                     throw new LexicalException(linhaAtual, LexicalErrorEnum.CARACTER_INVALIDO, c);
@@ -370,8 +370,8 @@ public class AnalisadorLexico {
                     lexema = lexema.substring(0, lexema.length() - 1);
 
                     registroLexico.token = new Token("CONST");
-                    registroLexico.tipo = "FLOAT";
-                    registroLexico.valor = lexema;
+                    registroLexico.tipoConst = "real";
+                    registroLexico.valorConst = lexema;
                     continue;
                 }
             } else if (currentState == 22) { // TODO DELETAR?
@@ -386,8 +386,8 @@ public class AnalisadorLexico {
                     currentState = 3;
 
                     registroLexico.token = new Token("CONST");
-                    registroLexico.tipo = "STRING";
-                    registroLexico.valor = lexema;
+                    registroLexico.tipoConst = "string";
+                    registroLexico.valorConst = lexema;
                     continue;
                 } else if (c >= 32 && c <= 126) {
                     i = reader.read(); // le o prox valor em inteiro do char
@@ -408,8 +408,8 @@ public class AnalisadorLexico {
                     lexema = lexema.substring(0, lexema.length() - 1);
 
                     registroLexico.token = new Token("CONST");
-                    registroLexico.tipo = "CHAR";
-                    registroLexico.valor = lexema;
+                    registroLexico.tipoConst = "CHAR";
+                    registroLexico.valorConst = lexema;
                     continue;
                 }
             }
