@@ -1,5 +1,7 @@
 import java.io.IOException;
 
+// TODO AVALIAR SE TEM QUE TIRAR VALOR
+
 public class AnalisadorSintatico {
     AnalisadorLexico analisadorLexico;
     RegistroLexico reg;
@@ -43,47 +45,56 @@ public class AnalisadorSintatico {
     }
 
     // E -> E1 [( = | <> | < | <= | >= | > ) E1]
-    public void E() throws LexicalException, IOException, SyntaticException, SemanticalException {
-        E1();
+    public void E(AtributoHerdado atributoPai) throws LexicalException, IOException, SyntaticException, SemanticalException {
+        
+        AtributoHerdado atributoE1_1 = new AtributoHerdado();
+        
+        E1(atributoE1_1);
+        s33(atributoPai, atributoE1_1);
+
+
+        AtributoOperacao atributoOperacao = new AtributoOperacao();
         String tokenAtual = reg.token.nome;
-        if(
-                tokenAtual.equals("==") || tokenAtual.equals("<>") ||
-                        tokenAtual.equals("<") || tokenAtual.equals("<=") ||
-                tokenAtual.equals(">=") || tokenAtual.equals(">")) {
-            switch (reg.token.nome){
-                case "==":
-                    CasaToken("==");
-                    break;
-                case "<>":
-                    CasaToken("<>");
-                    break;
-                case "<":
-                    CasaToken("<");
-                    break;
-                case "<=":
-                    CasaToken("<=");
-                    break;
-                case ">=":
-                    CasaToken(">=");
-                    break;
-                case ">":
-                    CasaToken(">");
-                    break;
+
+        if(tokenAtual.equals("==") || tokenAtual.equals("<>") || tokenAtual.equals("<") ||
+                tokenAtual.equals("<=") || tokenAtual.equals(">=") || tokenAtual.equals(">")) {
+            switch (reg.token.nome) {
+                case "==" -> CasaToken("==");
+                case "<>" -> CasaToken("<>");
+                case "<" -> CasaToken("<");
+                case "<=" -> CasaToken("<=");
+                case ">=" -> CasaToken(">=");
+                case ">" -> CasaToken(">");
             }
-            E1();
+            s34(atributoOperacao, tokenAtual);
+
+            AtributoHerdado atributoE1_2 = new AtributoHerdado();
+            E1(atributoE1_2);
+            s35(atributoOperacao,atributoPai,atributoE1_2);
+            s36(atributoPai);
         }
 
     }
 
     // E1 -> [-] E2 {(+ | - | or) E2}*
-    public void E1() throws LexicalException, IOException, SyntaticException, SemanticalException {
+    public void E1(AtributoHerdado atributoPai) throws LexicalException, IOException, SyntaticException, SemanticalException {
+        AtributoFlag atributoFlag = new AtributoFlag();
 
         if(reg.token.nome.equals("-")) {
             CasaToken("-");
+            s27(atributoFlag);
         }
 
-        E2();
+        AtributoHerdado atributoE2_1 = new AtributoHerdado();
+        E2(atributoE2_1);
+        s30(atributoE2_1, atributoFlag); // WARNING aqui é esse mesmo ou é atributopai?
+        s23(atributoPai, atributoE2_1);
+
         while (reg.token.nome.equals("+") || reg.token.nome.equals("-") || reg.token.nome.equals("or")){
+
+            AtributoOperacao atributoOperacao = new AtributoOperacao();
+            String op = reg.token.nome;
+
             if(reg.token.nome.equals("+"))
             {
                 CasaToken("+");
@@ -95,90 +106,112 @@ public class AnalisadorSintatico {
             else {
                 CasaToken("or");
             }
-            E2();
+
+            AtributoHerdado atributoE2_2 = new AtributoHerdado();
+            s28(atributoOperacao, op);
+            E2(atributoE2_2);
+            s29(atributoOperacao,atributoPai,atributoE2_2);
+            s32(atributoPai,atributoE2_2,atributoOperacao);
         }
+
+
     }
 
     // E2 -> E3 {(* | (div | /) | mod | and) E3}
-    public void E2() throws LexicalException, IOException, SyntaticException, SemanticalException {
-        E3();
-
+    public void E2(AtributoHerdado atributoPai) throws LexicalException, IOException, SyntaticException, SemanticalException {
+        AtributoHerdado atributoE3_1 = new AtributoHerdado();
+        E3(atributoE3_1);
+        s24(atributoPai, atributoE3_1);
         while(reg.token.nome.equals("*") || (reg.token.nome.equals("div") || reg.token.nome.equals("/")) || reg.token.nome.equals("mod") || reg.token.nome.equals("and")){
+            AtributoOperacao op = new AtributoOperacao();
+            String _op = reg.token.nome;
             switch (reg.token.nome) {
-                case "*" -> CasaToken("*");
-                case "div", "/" -> {
-                    if (reg.token.nome.equals("div")) {
-                        CasaToken("div");
-                    } else {
-                        CasaToken("/");
-                    }
-                }
-                case "mod" -> CasaToken("mod");
-                default -> CasaToken("and");
+                case "*" ->    CasaToken("*");
+                case "div" ->  CasaToken("div");
+                case  "/" ->   CasaToken("/");
+                case "mod" ->  CasaToken("mod");
+                default ->     CasaToken("and");
             }
-
-            E3();
+            AtributoHerdado atributoE3_2 = new AtributoHerdado();
+            s25(op,_op);
+            E3(atributoE3_2);
+            s26(op,atributoPai,atributoE3_2);
+            s31(atributoPai, atributoE3_1, op);
         }
     }
 
     // E3 -> not E4 | E4
-    public void E3() throws LexicalException, IOException, SyntaticException, SemanticalException {
+    public void E3(AtributoHerdado atributoPai) throws LexicalException, IOException, SyntaticException, SemanticalException {
+        AtributoHerdado atributoE4 = new AtributoHerdado();
+
         if(reg.token.nome.equals("not")  ) {
             CasaToken("not");
-            E4();
+            E4(atributoE4);
+            s22(atributoE4);
+            s21(atributoPai, atributoE4);
         }else{
-            E4();
+            E4(atributoE4);
+            s21(atributoPai,atributoE4);
         }
     }
 
     // E4 -> integer '(' E5 ')' | real '(' E5 ')' | E5
-    public void E4() throws LexicalException, IOException, SyntaticException, SemanticalException {
+    public void E4(AtributoHerdado atributoPai) throws LexicalException, IOException, SyntaticException, SemanticalException {
+        AtributoHerdado atributoE5 = new AtributoHerdado();
+
         if(reg.token.nome.equals("integer")  ) {
             CasaToken("integer");
             CasaToken("(");
-            E5();
+            E5(atributoE5);
+            s17(atributoE5);
             CasaToken(")");
+            s19(atributoPai,atributoE5);
         }else if(reg.token.nome.equals("real")){
             CasaToken("real");
             CasaToken("(");
-            E5();
+            E5(atributoE5);
+            s17(atributoE5);
             CasaToken(")");
+            s20(atributoPai,atributoE5);
         }
         else {
-            E5();
+            E5(atributoE5);
+            s18(atributoPai,atributoE5);
         }
     }
 
     // E5 -> const | true | false | id [ '[' E ']' ] | '(' E ')'
-    public void E5() throws LexicalException, IOException, SyntaticException, SemanticalException {
-        String token = reg.token.nome;
+    public void E5(AtributoHerdado atributoPai) throws LexicalException, IOException, SyntaticException, SemanticalException {
+        RegistroLexico _reg = reg;
 
-        if(token.equals("CONST") || token.equals("true") || token.equals("false") || token.equals("ID") || token.equals("(")){
-            if(token.equals("CONST")) {
-                CasaToken("CONST");
+        AtributoHerdado atributoE = new AtributoHerdado();
+        if(_reg.token.equals("CONST")) {
+            CasaToken("CONST");
+            s13(atributoPai, _reg);
+        }
+        else if(_reg.token.equals("true")) {
+            CasaToken("true");
+            s14(atributoPai, _reg);
+        }
+        else if(_reg.token.equals("false")){
+            CasaToken("false");
+            s14(atributoPai, _reg);
+        }
+        else if(_reg.token.equals("ID")) {
+            CasaToken("ID");
+            s3(_reg);
+            s15(atributoPai,_reg);
+            if(reg.token.nome.equals("[")){
+                CasaToken("[");
+                E(atributoE);
+                CasaToken("]");
             }
-            else if(token.equals("true")) {
-                CasaToken("true");
-            }
-            else if(token.equals("false")){
-                CasaToken("false");
-            }
-            else if(token.equals("ID")) {
-                RegistroLexico id = reg;
-                CasaToken("ID");
-                s3(id);
-
-                if(reg.token.nome.equals("[")){
-                    CasaToken("[");
-                    E();
-                    CasaToken("]");
-                }
-            }
-            else if(token.equals("(")) {
-                CasaToken("(");
-                E();
-                CasaToken(")");
-            }
+        }
+        else if(_reg.equals("(")) {
+            CasaToken("(");
+            E(atributoE);
+            CasaToken(")");
+            s16(atributoPai,atributoE);
         }
     }
 
@@ -215,7 +248,7 @@ public class AnalisadorSintatico {
         
         if(reg.token.nome.equals("[")){
             CasaToken("[");
-            E();
+            CasaToken("const"); // TODO POR VERIFICACAO DE TIPOS!!!
             CasaToken("]");
 
         }else if(reg.token.nome.equals("=")) {
@@ -239,7 +272,7 @@ public class AnalisadorSintatico {
         s6(id);
         if(reg.token.nome.equals("[")){
             CasaToken("[");
-            E();
+            CasaToken("const");
             CasaToken("]");
 
         }
@@ -265,7 +298,7 @@ public class AnalisadorSintatico {
         s7(id);
         if(reg.token.nome.equals("[")){
             CasaToken("[");
-            E();
+            CasaToken("const");
             CasaToken("]");
 
         }else if(reg.token.nome.equals("=")) {
@@ -288,7 +321,7 @@ public class AnalisadorSintatico {
         s8(id);
         if(reg.token.nome.equals("[")){
             CasaToken("[");
-            E();
+            CasaToken("const");
             CasaToken("]");
 
         }else if(reg.token.nome.equals("=")) {
@@ -340,19 +373,7 @@ public class AnalisadorSintatico {
 
             if (reg.token.nome.equals("[")) {
                 CasaToken("[");
-                E();
-//                if (reg.token.nome.equals("CONST")) {
-//                    CasaToken("CONST");
-//                } else if (reg.token.nome.equals("ID")) {
-//                    CasaToken("ID");
-//                }
-//                else {
-//                    if(reg.token.nome.equals("FIM_DE_ARQUIVO")){
-//                        throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.FIM_DE_ARQUIVO);
-//                    }
-//
-//                    throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.TOKEN_NAO_ESPERADO, reg.lexema.nome);
-//                }
+                CasaToken("const");
 
                 CasaToken("]");
             } else if (reg.token.nome.equals("=")) {
@@ -374,19 +395,7 @@ public class AnalisadorSintatico {
             s7(id);
             if (reg.token.nome.equals("[")) {
                 CasaToken("[");
-                E();
-//                if (reg.token.nome.equals("CONST")) {
-//                    CasaToken("CONST");
-//                } else if (reg.token.nome.equals("ID")) {
-//                    CasaToken("ID");
-//                }
-//                else {
-//                    if(reg.token.nome.equals("FIM_DE_ARQUIVO")){
-//                        throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.FIM_DE_ARQUIVO);
-//                    }
-//
-//                    throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.TOKEN_NAO_ESPERADO, reg.lexema.nome);
-//                }
+                CasaToken("const");
 
                 CasaToken("]");
             } else if (reg.token.nome.equals("=")) {
@@ -409,18 +418,7 @@ public class AnalisadorSintatico {
             if (reg.token.nome.equals("[")) {
                 CasaToken("[");
 
-                E();
-//                if (reg.token.nome.equals("CONST")) {
-//                    CasaToken("CONST");
-//                } else if (reg.token.nome.equals("ID")) {
-//                    CasaToken("ID");
-//                }
-//                else {
-//                    if(reg.token.nome.equals("FIM_DE_ARQUIVO")){
-//                        throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.FIM_DE_ARQUIVO);
-//                    }
-//                    throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.TOKEN_NAO_ESPERADO, reg.lexema.nome);
-//                }
+                CasaToken("const");
 
                 CasaToken("]");
             } else if (reg.token.nome.equals("=")) {
@@ -613,26 +611,336 @@ public class AnalisadorSintatico {
     public void s5(RegistroLexico id){
         id.lexema.tipo = "integer";
     }
+
     public void s6(RegistroLexico id) {
         id.lexema.tipo = "real";
     }
+
     public void s7(RegistroLexico id) {
         id.lexema.tipo = "char";
     }
+
     public void s8(RegistroLexico id) {
         id.lexema.tipo = "boolean";
     }
+
     public void s10(RegistroLexico id, String tipo) {
         id.lexema.tipo = tipo;
     }
+
     public void s11(RegistroLexico id, String expressao) throws SemanticalException {
         if(!id.lexema.tipo.equals(expressao)){
             throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, id.lexema.nome);
         }
     }
+
     public void s12(RegistroLexico id, String expressao) throws SemanticalException {
         if(!(expressao.equals("integer") || expressao.equals("real"))){
             throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, id.lexema.nome);
         }
     }
+
+    public void s13(AtributoHerdado atributoPai, RegistroLexico _reg) {
+        atributoPai.tipo = _reg.tipo;
+        atributoPai.nome = reg.lexema.nome;
+    }
+
+    public void s14(AtributoHerdado atributoPai, RegistroLexico _reg) throws SemanticalException {
+        atributoPai.tipo = _reg.tipo;
+        atributoPai.nome = reg.lexema.nome;
+    }
+
+    public void s15(AtributoHerdado E5, RegistroLexico id) throws SemanticalException {
+        E5.tipo = id.tipo;
+        E5.nome = id.lexema.nome;
+    }
+    public void s16(AtributoHerdado E5, AtributoHerdado E) throws SemanticalException {
+        E5.tipo = E.tipo;
+        E5.nome = E.nome;
+    }
+    public void s17(AtributoHerdado E4) throws SemanticalException {
+        if(!(E4.tipo.equals("real") || E4.tipo.equals("inteiro"))){
+            throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E4.nome);
+        }
+    }
+    public void s18(AtributoHerdado E4, AtributoHerdado E5) throws SemanticalException {
+        E4.tipo = E5.tipo;
+        E4.nome = E5.nome;
+    }
+
+    public void s19(AtributoHerdado E4, AtributoHerdado E5) throws SemanticalException {
+        E4.tipo = "integer";
+//        float valor =  Float.parseFloat(E5.valor);
+//        int vFinal = (int)valor;
+//        E4.valor = Integer.toString(vFinal);
+    }
+
+    public void s20(AtributoHerdado E4, AtributoHerdado E5) throws SemanticalException {
+        E4.tipo = "real";
+//        float vFinal =  Float.parseFloat(E5.valor);
+//        E4.valor = Float.toString(vFinal);
+    }
+
+    public void s21(AtributoHerdado E3, AtributoHerdado E4) throws SemanticalException {
+        E3.tipo = E4.tipo;
+        E3.nome = E4.nome;
+    }
+
+    public void s22(AtributoHerdado E4) throws SemanticalException {
+        if(!E4.tipo.equals("boolean")){
+            throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E4.nome );
+        }
+    }
+
+    public void s23(AtributoHerdado E1, AtributoHerdado E2) throws SemanticalException {
+//        if(E4.valor.equals("true")){
+//            E4.valor="false";
+//        }else{
+//            E4.valor="true";
+//        }
+
+        E1.tipo = E2.tipo;
+        E1.nome = E2.nome;
+    }
+
+    public void s24(AtributoHerdado E2, AtributoHerdado E3) throws SemanticalException {
+        E2.tipo = E3.tipo;
+        E2.nome = E3.nome;
+    }
+
+    public void s25(AtributoOperacao E2, String op) throws SemanticalException {
+        E2.op = op;
+    }
+
+    public void s26(AtributoOperacao E3_op, AtributoHerdado E2, AtributoHerdado E3_2) throws SemanticalException {
+        switch (E3_op.op){
+            case "and" -> {
+                if(!E2.tipo.equals("boolean") ){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E2.nome);
+                } else if(!E3_2.tipo.equals("boolean")){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E3_2.nome);
+                }
+            }
+            case "*" -> {
+                if(!E2.tipo.equals("real") && !E2.tipo.equals("integer")){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E2.nome);
+                }
+                else if(!E3_2.tipo.equals("real") && !E3_2.tipo.equals("integer")){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E3_2.nome);
+                }
+            }
+            case "/" -> {
+                System.out.println("POR COISA DE VALOR AQUI DPS");
+
+                if(!E2.tipo.equals("real") && !E2.tipo.equals("integer")){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E2.nome);
+                }
+                else if(!E3_2.tipo.equals("real") && !E3_2.tipo.equals("integer")){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E3_2.nome);
+                }
+            }
+            case "div" -> {
+                if(!E2.tipo.equals("integer")){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E2.nome);
+                }
+                if(!E3_2.tipo.equals("integer")){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E3_2.nome);
+                }
+            }
+            case "mod" -> {
+                System.out.println("POR COISA DE VALOR AQUI DPS");
+
+                if(!E2.tipo.equals("integer")){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E2.nome);
+                }
+                if(!E3_2.tipo.equals("integer")){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E3_2.nome);
+                }
+            }
+        }
+    }
+
+    public void s27(AtributoFlag flag){
+        flag.flag = true;
+    }
+
+    public void s28(AtributoOperacao E1, String op){
+        E1.op = op;
+    }
+    public void s29(AtributoOperacao op, AtributoHerdado E1 ,AtributoHerdado E2_2) throws SemanticalException {
+        switch (op.op) {
+            case "-" ->{
+                if(!E1.tipo.equals("real") && !E1.tipo.equals("integer")){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1.nome);
+                }
+                else if(!E2_2.tipo.equals("real") && !E2_2.tipo.equals("integer")){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E2_2.nome);
+                }
+            }
+            case "+" ->{
+                System.out.println("POR COISA DE VALOR AQUI DPS");
+
+                if(!E1.tipo.equals("real") && !E1.tipo.equals("integer")){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1.nome);
+                }
+                else if(!E2_2.tipo.equals("real") && !E2_2.tipo.equals("integer")){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E2_2.nome);
+                }
+            }
+            case "or" ->{
+                if(!E1.tipo.equals("boolean") ){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1.nome);
+                } else if(!E2_2.tipo.equals("boolean")){
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E2_2.nome);
+                }
+            }
+
+        }
+    }
+
+    public void s30(AtributoHerdado E2, AtributoFlag flag) throws SemanticalException {
+        if(flag.flag && !E2.tipo.equals("real") && !E2.tipo.equals("integer")){
+            throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E2.nome);
+        }
+    }
+
+    public void s31(AtributoHerdado E2, AtributoHerdado E3_1, AtributoOperacao op){
+        switch (op.op) {
+            case "*" -> {
+                if (E2.tipo.equals("real") || E3_1.tipo.equals("real")) {
+                    E2.tipo = "real";
+                }
+            }
+            case "/" -> {
+                if (E2.tipo.equals("real") || E3_1.tipo.equals("real")) {
+                    E2.tipo = "real";
+                }
+            }
+            case "and" -> E2.tipo = "boolean";
+            case "mod" -> E2.tipo = "integer";
+            case "div" -> E2.tipo = "integer";
+        }
+    }
+
+    public void s32(AtributoHerdado E1, AtributoHerdado E2_1, AtributoOperacao op){
+        switch (op.op) {
+            case "+" -> {
+                if (E1.tipo.equals("real") || E2_1.tipo.equals("real")) {
+                    E1.tipo = "real";
+                }
+            }
+            case "-" -> {
+                if (E1.tipo.equals("real") || E2_1.tipo.equals("real")) {
+                    E1.tipo = "real";
+                }
+            }
+            case "or" -> E1.tipo = "boolean";
+        }
+    }
+
+    public void s33(AtributoHerdado E, AtributoHerdado E1) {
+        E.tipo = E1.tipo;
+    }
+
+    public void s34(AtributoOperacao E, String op){
+        E.op = op;
+    }
+    public void s35(AtributoOperacao op,AtributoHerdado E_1, AtributoHerdado E1_2 ) throws SemanticalException {
+        switch (op.op){
+            case "==" ->{
+                if(E_1.tipo.equals("real") || E_1.tipo.equals("integer")){
+                    if(!(E1_2.tipo.equals("real") || E1_2.tipo.equals("integer"))){
+                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    }
+                }else if(E_1.tipo.equals("char")){
+                    if(!E1_2.tipo.equals("char")){
+                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    }
+                }else if(E_1.tipo.equals("string")){
+                    if(!E1_2.tipo.equals("string")){
+                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    }
+                }else{
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E_1.nome);
+                }
+            }
+            case "<>" ->{
+                System.out.println(1);
+                if(E_1.tipo.equals("real") || E_1.tipo.equals("integer")){
+                    if(!(E1_2.tipo.equals("real") || E1_2.tipo.equals("integer"))){
+                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    }
+                }else if(E_1.tipo.equals("char")){
+                    if(!E1_2.tipo.equals("char")){
+                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    }
+                }else{
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E_1.nome);
+                }
+            }
+            case "<" ->{
+                System.out.println(2);
+                if(E_1.tipo.equals("real") || E_1.tipo.equals("integer")){
+                    if(!(E1_2.tipo.equals("real") || E1_2.tipo.equals("integer"))){
+                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    }
+                }else if(E_1.tipo.equals("char")){
+                    if(!E1_2.tipo.equals("char")){
+                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    }
+                }else{
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E_1.nome);
+                }
+            }
+            case ">" ->{
+                System.out.println(3);
+                if(E_1.tipo.equals("real") || E_1.tipo.equals("integer")){
+                    if(!(E1_2.tipo.equals("real") || E1_2.tipo.equals("integer"))){
+                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    }
+                }else if(E_1.tipo.equals("char")){
+                    if(!E1_2.tipo.equals("char")){
+                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    }
+                }else{
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E_1.nome);
+                }
+            }
+            case "<=" ->{
+                System.out.println(4);
+                if(E_1.tipo.equals("real") || E_1.tipo.equals("integer")){
+                    if(!(E1_2.tipo.equals("real") || E1_2.tipo.equals("integer"))){
+                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    }
+                }else if(E_1.tipo.equals("char")){
+                    if(!E1_2.tipo.equals("char")){
+                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    }
+                }else{
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E_1.nome);
+                }
+            }
+            case ">=" ->{
+                System.out.println(5);
+                if(E_1.tipo.equals("real") || E_1.tipo.equals("integer")){
+                    if(!(E1_2.tipo.equals("real") || E1_2.tipo.equals("integer"))){
+                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    }
+                }else if(E_1.tipo.equals("char")){
+                    if(!E1_2.tipo.equals("char")){
+                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    }
+                }else{
+                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E_1.nome);
+                }
+            }
+
+        }
+
+    }
+
+    public void s36(AtributoHerdado E){
+        E.tipo = "boolean";
+    }
+
 }
