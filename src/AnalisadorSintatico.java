@@ -11,10 +11,14 @@ public class AnalisadorSintatico {
     }
 
     public void analisar() throws LexicalException, IOException, SyntaticException, SemanticalException {
+        GeradorCodigo.initialize();
+
         reg = analisadorLexico.analisar();
         S();
 
         System.out.println(analisadorLexico.linhaAtual + " linhas compiladas");
+
+        System.out.println(GeradorCodigo.finalizeCode());
     }
 
     public void CasaToken(String tokenEsperado) throws IOException, LexicalException, SyntaticException {
@@ -36,12 +40,14 @@ public class AnalisadorSintatico {
                 D();
             }
             else{
-                C();
+                break;
             }
+        }
+        while(!reg.token.nome.equals("FIM_DE_ARQUIVO")){
+            C();
         }
 
         CasaToken("FIM_DE_ARQUIVO");
-        System.out.println("Compilacão finalizada.");
     }
 
     // E -> E1 [( = | <> | < | <= | >= | > ) E1]
@@ -185,54 +191,50 @@ public class AnalisadorSintatico {
         RegistroLexico _reg = reg;
 
         AtributoHerdado atributoE = new AtributoHerdado();
-        if(_reg.token.nome.equals("CONST")) {
-            CasaToken("CONST");
-            s13(atributoPai, _reg);
-        }
-        else if(_reg.token.nome.equals("true")) {
-            CasaToken("true");
-            s14(atributoPai, _reg);
-        }
-        else if(_reg.token.nome.equals("false")){
-            CasaToken("false");
-            s14(atributoPai, _reg);
-        }
-        else if(_reg.token.nome.equals("ID")) {
-            CasaToken("ID");
-            s3(_reg);
-            s15(atributoPai,_reg);
-            if(reg.token.nome.equals("[")){
-                CasaToken("[");
-                E(atributoE);
-                CasaToken("]");
+        switch (_reg.token.nome) {
+            case "CONST" -> {
+                CasaToken("CONST");
+                s13(atributoPai, _reg);
             }
-        }
-        else if(_reg.token.nome.equals("(")) {
-            CasaToken("(");
-            E(atributoE);
-            CasaToken(")");
-            s16(atributoPai,atributoE);
+            case "true" -> {
+                CasaToken("true");
+                s14(atributoPai, _reg);
+            }
+            case "false" -> {
+                CasaToken("false");
+                s14(atributoPai, _reg);
+            }
+            case "ID" -> {
+                CasaToken("ID");
+                s3(_reg);
+                s15(atributoPai, _reg);
+                if (reg.token.nome.equals("[")) {
+                    CasaToken("[");
+                    E(atributoE);
+                    CasaToken("]");
+                }
+            }
+            case "(" -> {
+                CasaToken("(");
+                E(atributoE);
+                CasaToken(")");
+                s16(atributoPai, atributoE);
+            }
+            default -> {
+                throw new SyntaticException(analisadorLexico.linhaAtual, SyntaticErrorEnum.TOKEN_NAO_ESPERADO, reg.lexema.nome);
+            }
         }
     }
 
 
     public void D() throws LexicalException, IOException, SyntaticException, SemanticalException {
-        switch (reg.token.nome){
-            case "integer":
-                D1();
-                break;
-            case "real":
-                D2();
-                break;
-            case "char":
-                D3();
-                break;
-            case "boolean":
-                D4();
-                break;
-            case "final":
-                D5();
-                break;
+        switch (reg.token.nome) {
+            case "integer" -> D1();
+            case "real" -> D2();
+            case "char" -> D3();
+            case "boolean" -> D4();
+            case "final" -> D5();
+            case "string" -> D6();
         }
     }
 
@@ -241,23 +243,36 @@ public class AnalisadorSintatico {
         CasaToken("integer");
         
         RegistroLexico id = reg;
-        AtributoHerdado E = new AtributoHerdado();
         
         CasaToken("ID");
         s1(id);
         s5(id);
+
+        id.lexema.endereco = GeradorCodigo.declareInteger();
         
         if(reg.token.nome.equals("[")){
             CasaToken("[");
-            CasaToken("CONST"); // TODO POR VERIFICACAO DE TIPOS!!!
+            s42(id);
+
+            RegistroLexico constReg = reg;
+            CasaToken("CONST");
+            s38(constReg);
+            s43(id,constReg);
+
             CasaToken("]");
 
         }else if(reg.token.nome.equals("=")) {
             CasaToken("=");
-            E(E);
+
+            RegistroLexico constReg = reg;
+            CasaToken("CONST");
+
+            s10(id, constReg);
+            GeradorCodigo.writeInteger(constReg.valorConst, id.lexema.endereco);
         }
+
         if(reg.token.nome.equals(",")){
-            H(id.tipoConst);
+            H();
         }
         CasaToken(";");
     }
@@ -272,19 +287,31 @@ public class AnalisadorSintatico {
         CasaToken("ID");
         s1(id);
         s6(id);
+
+        id.lexema.endereco = GeradorCodigo.declareReal();
+
         if(reg.token.nome.equals("[")){
             CasaToken("[");
+            s42(id);
+
+            RegistroLexico constReg = reg;
             CasaToken("CONST");
+
+            s38(constReg);
+            s43(id,constReg);
             CasaToken("]");
 
         }
         else if(reg.token.nome.equals("=")) {
             CasaToken("=");
-            E(E);
+            RegistroLexico constReg = reg;
+            CasaToken("CONST");
 
+            s12(id,constReg);
+            GeradorCodigo.writeReal(constReg.valorConst, id.lexema.endereco);
         }
         if(reg.token.nome.equals(",")){
-            H(id.tipoConst);
+            H4();
         }
 
         CasaToken(";");
@@ -299,14 +326,27 @@ public class AnalisadorSintatico {
         CasaToken("ID");
         s1(id);
         s7(id);
+
+        id.lexema.endereco = GeradorCodigo.declareChar();
+
         if(reg.token.nome.equals("[")){
             CasaToken("[");
+            s42(id);
+
+            RegistroLexico constReg = reg;
             CasaToken("CONST");
+
+            s38(constReg);
+            s43(id,constReg);
             CasaToken("]");
 
         }else if(reg.token.nome.equals("=")) {
             CasaToken("=");
-            E(E);
+
+            RegistroLexico constReg = reg;
+            CasaToken("CONST");
+
+            s10(id, constReg);
         }
         if(reg.token.nome.equals(",")){
             H1();
@@ -318,19 +358,32 @@ public class AnalisadorSintatico {
     public void D4() throws LexicalException, IOException, SyntaticException, SemanticalException {
         CasaToken("boolean");
         RegistroLexico id = reg;
-        AtributoHerdado E = new AtributoHerdado();
 
         CasaToken("ID");
         s1(id);
         s8(id);
+
+        id.lexema.endereco = GeradorCodigo.declareBoolean();
+
         if(reg.token.nome.equals("[")){
             CasaToken("[");
+            s42(id);
+
+            RegistroLexico constReg = reg;
             CasaToken("CONST");
+
+            s38(constReg);
+            s43(id,constReg);
             CasaToken("]");
 
         }else if(reg.token.nome.equals("=")) {
             CasaToken("=");
-            E(E);
+
+            AtributoHerdado I = new AtributoHerdado();
+            I(I);
+
+            s37(id, I);
+            GeradorCodigo.writeBoolean(I.valor, id.lexema.endereco);
         }
         if(reg.token.nome.equals(",")){
             H2();
@@ -343,49 +396,102 @@ public class AnalisadorSintatico {
         CasaToken("final");
 
         RegistroLexico id = reg;
-        AtributoHerdado E = new AtributoHerdado();
 
         CasaToken("ID");
         s2(id);
         CasaToken("=");
-        E(E);
+
+        RegistroLexico constReg = reg;
+        CasaToken("CONST");
+        s41(id, constReg);
+        id.lexema.endereco = GeradorCodigo.declareFinal(reg);
+
         if(reg.token.nome.equals(",")){
             H3();
         }
         CasaToken(";");
     }
 
+    public void D6() throws LexicalException, IOException, SyntaticException, SemanticalException {
+        CasaToken("string");
+        RegistroLexico id = reg;
+
+        CasaToken("ID");
+        s1(id);
+        s9(id);
+        if(reg.token.nome.equals("[")){
+            CasaToken("[");
+            s42(id);
+
+            RegistroLexico constReg = reg;
+            CasaToken("CONST");
+
+            s38(constReg);
+            s43(id,constReg);
+            CasaToken("]");
+
+        }else if(reg.token.nome.equals("=")) {
+            CasaToken("=");
+
+            RegistroLexico constReg = reg;
+            CasaToken("CONST");
+
+            s10(id, constReg);
+        }
+        if(reg.token.nome.equals(",")){
+            H5();
+        }
+        CasaToken(";");
+    }
+
     // I -> true | false
-    public void I() throws LexicalException, IOException, SyntaticException, SemanticalException {
+    public void I(AtributoHerdado I) throws LexicalException, IOException, SyntaticException, SemanticalException {
+
         if(reg.token.nome.equals("true")){
+            RegistroLexico constReg = reg;
+
             CasaToken("true");
+            s11(I, constReg);
+
         }
         else if(reg.token.nome.equals("false")){
+            RegistroLexico constReg = reg;
+
             CasaToken(("false"));
+            s11(I, constReg);
         }
+
     }
 
 
     // H -> {',' id [ '[' CONST | id ']' ] | [ = E]}+
-    public void H(String tipo) throws LexicalException, IOException, SyntaticException, SemanticalException{
+    public void H() throws LexicalException, IOException, SyntaticException, SemanticalException{
         do {
             CasaToken(",");
             RegistroLexico id = reg;
 
             CasaToken("ID");
             s1(id);
-            s10(id, tipo);
+            s5(id);
 
             if (reg.token.nome.equals("[")) {
                 CasaToken("[");
+                s42(id);
+
+                RegistroLexico constReg = reg;
                 CasaToken("CONST");
 
+                s38(constReg);
+                s43(id,constReg);
                 CasaToken("]");
             } else if (reg.token.nome.equals("=")) {
                 CasaToken("=");
 
-                AtributoHerdado E = new AtributoHerdado();
-                E(E);
+                RegistroLexico constReg = reg;
+                CasaToken("CONST");
+
+                s10(id, constReg);
+                GeradorCodigo.writeInteger(constReg.valorConst, id.lexema.endereco);
             }
         } while (reg.token.nome.equals(","));
     }
@@ -401,13 +507,19 @@ public class AnalisadorSintatico {
             s7(id);
             if (reg.token.nome.equals("[")) {
                 CasaToken("[");
+                s42(id);
+
+                RegistroLexico constReg = reg;
                 CasaToken("CONST");
 
+                s38(constReg);
+                s43(id,constReg);
                 CasaToken("]");
             } else if (reg.token.nome.equals("=")) {
                 CasaToken("=");
-
+                RegistroLexico constReg = reg;
                 CasaToken("CONST");
+                s10(id,constReg);
             }
         } while (reg.token.nome.equals(","));
     }
@@ -423,14 +535,21 @@ public class AnalisadorSintatico {
             s8(id);
             if (reg.token.nome.equals("[")) {
                 CasaToken("[");
+                s42(id);
 
+                RegistroLexico constReg = reg;
                 CasaToken("CONST");
 
+                s38(constReg);
+                s43(id,constReg);
                 CasaToken("]");
             } else if (reg.token.nome.equals("=")) {
                 CasaToken("=");
 
-                I();
+                AtributoHerdado I = new AtributoHerdado();
+                I(I);
+
+                s37(id,I);
             }
         } while (reg.token.nome.equals(","));
     }
@@ -440,12 +559,72 @@ public class AnalisadorSintatico {
         do {
             CasaToken(",");
             RegistroLexico id = reg;
-            AtributoHerdado E5 = new AtributoHerdado();
 
             CasaToken("ID");
             s2(id);
             CasaToken("=");
-            E5(E5);
+
+            RegistroLexico constReg = reg;
+            CasaToken("CONST");
+            s41(id, constReg);
+        } while (reg.token.nome.equals(","));
+    }
+
+    public void H4() throws LexicalException, IOException, SyntaticException, SemanticalException {
+        do {
+            CasaToken(",");
+            RegistroLexico id = reg;
+
+            CasaToken("ID");
+            s1(id);
+            s6(id);
+
+
+            if (reg.token.nome.equals("[")) {
+                CasaToken("[");
+                s42(id);
+
+                RegistroLexico constReg = reg;
+                CasaToken("CONST");
+
+                s38(constReg);
+                s43(id,constReg);
+                CasaToken("]");
+            } else if (reg.token.nome.equals("=")) {
+                CasaToken("=");
+
+                RegistroLexico constReg = reg;
+                CasaToken("CONST");
+
+                s12(id,constReg);
+                GeradorCodigo.writeReal(constReg.valorConst, id.lexema.endereco);
+            }
+        } while (reg.token.nome.equals(","));
+    }
+    public void H5() throws LexicalException, IOException, SyntaticException, SemanticalException {
+        do {
+            CasaToken(",");
+            RegistroLexico id = reg;
+
+            CasaToken("ID");
+            s1(id);
+            s9(id);
+            if (reg.token.nome.equals("[")) {
+                CasaToken("[");
+                s42(id);
+
+                RegistroLexico constReg = reg;
+                CasaToken("CONST");
+
+                s38(constReg);
+                s43(id,constReg);
+                CasaToken("]");
+            } else if (reg.token.nome.equals("=")) {
+                CasaToken("=");
+                RegistroLexico constReg = reg;
+                CasaToken("CONST");
+                s10(id,constReg);
+            }
         } while (reg.token.nome.equals(","));
     }
 
@@ -466,14 +645,10 @@ public class AnalisadorSintatico {
 
     // C -> C1 | C2 ';'
     public void C0() throws LexicalException, IOException, SyntaticException, SemanticalException {
-        if(reg.token.nome.equals("for") || reg.token.nome.equals("if")){
-            C1();
-        }
-        else if(reg.token.nome.equals("readln") || reg.token.nome.equals("write") || reg.token.nome.equals("writeln")){
-            C2();
-        }
-        else if(reg.token.nome.equals("ID")){
-            C3();
+        switch (reg.token.nome) {
+            case "for", "if" -> C1();
+            case "readln", "write", "writeln" -> C2();
+            case "ID" -> C3();
         }
     }
 
@@ -487,6 +662,7 @@ public class AnalisadorSintatico {
             C0();
             CasaToken(";");
             E(E);
+            s39(E);
             CasaToken(";");
             C0();
             CasaToken(")");
@@ -495,6 +671,7 @@ public class AnalisadorSintatico {
             CasaToken("if");
             CasaToken("(");
             E(E);
+            s39(E);
             CasaToken(")");
             A();
 
@@ -508,43 +685,44 @@ public class AnalisadorSintatico {
 
     // C2 -> readln '(' [-]id ')' | write '(' E [G] ')' | writeln '(' E [G] ')'
     public void C2() throws LexicalException, IOException, SyntaticException, SemanticalException {
-        if(reg.token.nome.equals("readln")){
-            CasaToken("readln");
-            CasaToken("(");
-
-            if(reg.token.nome.equals("-")){
-                CasaToken("-");
+        switch (reg.token.nome) {
+            case "readln" -> {
+                CasaToken("readln");
+                CasaToken("(");
+                RegistroLexico id = reg;
+                CasaToken("ID");
+                s3(id);
+                s4(id);
+                CasaToken(")");
             }
+            case "write" -> {
+                CasaToken("write");
+                CasaToken("(");
+                AtributoHerdado E = new AtributoHerdado();
 
-            RegistroLexico id = reg;
-            CasaToken("ID");
-            s3(id);
-            s4(id);
-            CasaToken(")");
-        }
-        else if(reg.token.nome.equals("write")){
-            CasaToken("write");
-            CasaToken("(");
-            AtributoHerdado E = new AtributoHerdado();
+                E(E);
+                s45(E);
+                if (reg.token.nome.equals(",")) {
+                    G();
+                }
 
-            E(E);
-            if(reg.token.nome.equals(",")){
-                G();
+                GeradorCodigo.printInteger(0x1003);
+
+                CasaToken(")");
             }
+            case "writeln" -> {
+                CasaToken("writeln");
+                CasaToken("(");
+                AtributoHerdado E = new AtributoHerdado();
 
-            CasaToken(")");
-        }
-        else if(reg.token.nome.equals("writeln")){
-            CasaToken("writeln");
-            CasaToken("(");
-            AtributoHerdado E = new AtributoHerdado();
+                E(E);
+                s45(E);
+                if (reg.token.nome.equals(",")) {
+                    G();
+                }
 
-            E(E);
-            if(reg.token.nome.equals(",")){
-                G();
+                CasaToken(")");
             }
-
-            CasaToken(")");
         }
     }
 
@@ -556,15 +734,22 @@ public class AnalisadorSintatico {
         s4(id);
         AtributoHerdado E = new AtributoHerdado();
 
+        RegistroLexico constReg = new RegistroLexico();
+
         if (reg.token.nome.equals("[")) {
             CasaToken("[");
-            E(E);
+            constReg = reg;
+            CasaToken("CONST");
+
+            s38(constReg);
+            s44(id,constReg);
             CasaToken("]");
         }
 
         CasaToken("=");
 
         E(E);
+        s40(id, E, constReg);
     }
 
     //A -> C | begin C* end
@@ -588,6 +773,7 @@ public class AnalisadorSintatico {
             AtributoHerdado E = new AtributoHerdado();
 
             E(E);
+            s45(E);
         } while (reg.token.nome.equals(","));
     }
 
@@ -616,7 +802,7 @@ public class AnalisadorSintatico {
     }
 
     public void s4(RegistroLexico id) throws SemanticalException {
-        if(!id.lexema.classe.equals("var")){
+        if(id.lexema.classe.equals("const")){
             throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.CLASSE_IDENTIFICADOR_INCOMPATIVEL, id.lexema.nome);
         }
     }
@@ -637,18 +823,23 @@ public class AnalisadorSintatico {
         id.lexema.tipo = "boolean";
     }
 
-    public void s10(RegistroLexico id, String tipo) {
-        id.lexema.tipo = tipo;
+    public void s9(RegistroLexico id) {
+        id.lexema.tipo = "string";
     }
 
-    public void s11(RegistroLexico id, String expressao) throws SemanticalException {
-        if(!id.lexema.tipo.equals(expressao)){
+    public void s10(RegistroLexico id, RegistroLexico con) throws SemanticalException {
+        if(!id.lexema.tipo.equals(con.tipoConst)){
             throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, id.lexema.nome);
         }
     }
 
-    public void s12(RegistroLexico id, String expressao) throws SemanticalException {
-        if(!(expressao.equals("integer") || expressao.equals("real"))){
+    public void s11(AtributoHerdado I, RegistroLexico con) {
+        I.tipo = con.tipoConst;
+        I.nome = con.valorConst;
+    }
+
+    public void s12(RegistroLexico id, RegistroLexico con) throws SemanticalException {
+        if(!(con.tipoConst.equals("integer") || con.tipoConst.equals("real"))){
             throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, id.lexema.nome);
         }
     }
@@ -658,7 +849,7 @@ public class AnalisadorSintatico {
         atributoPai.nome = _reg.token.nome.equals("CONST")? _reg.valorConst : _reg.lexema.nome;
     }
 
-    public void s14(AtributoHerdado atributoPai, RegistroLexico _reg) throws SemanticalException {
+    public void s14(AtributoHerdado atributoPai, RegistroLexico _reg) {
         atributoPai.tipo = _reg.tipoConst;
         atributoPai.nome = _reg.token.nome.equals("CONST")? _reg.valorConst : _reg.lexema.nome;
     }
@@ -666,19 +857,25 @@ public class AnalisadorSintatico {
     public void s15(AtributoHerdado E5, RegistroLexico id) throws SemanticalException {
         E5.tipo = id.lexema.tipo;
         E5.nome = id.lexema.nome;
+        E5.endereco = id.lexema.endereco;
     }
+
     public void s16(AtributoHerdado E5, AtributoHerdado E) throws SemanticalException {
         E5.tipo = E.tipo;
         E5.nome = E.nome;
+        E5.endereco = E.endereco;
     }
+
     public void s17(AtributoHerdado E4) throws SemanticalException {
-        if(!(E4.tipo.equals("real") || !(E4.tipo.equals("inteiro")))){
+        if(!(E4.tipo.equals("real")) && !(E4.tipo.equals("integer"))){
             throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E4.nome);
         }
     }
+
     public void s18(AtributoHerdado E4, AtributoHerdado E5) throws SemanticalException {
         E4.tipo = E5.tipo;
         E4.nome = E5.nome;
+        E4.endereco = E5.endereco;
     }
 
     public void s19(AtributoHerdado E4, AtributoHerdado E5) throws SemanticalException {
@@ -697,6 +894,7 @@ public class AnalisadorSintatico {
     public void s21(AtributoHerdado E3, AtributoHerdado E4) throws SemanticalException {
         E3.tipo = E4.tipo;
         E3.nome = E4.nome;
+        E3.endereco = E4.endereco;
     }
 
     public void s22(AtributoHerdado E4) throws SemanticalException {
@@ -714,11 +912,13 @@ public class AnalisadorSintatico {
 
         E1.tipo = E2.tipo;
         E1.nome = E2.nome;
+        E1.endereco = E2.endereco;
     }
 
     public void s24(AtributoHerdado E2, AtributoHerdado E3) throws SemanticalException {
         E2.tipo = E3.tipo;
         E2.nome = E3.nome;
+        E2.endereco = E3.endereco;
     }
 
     public void s25(AtributoOperacao E2, String op) throws SemanticalException {
@@ -743,8 +943,6 @@ public class AnalisadorSintatico {
                 }
             }
             case "/" -> {
-                System.out.println("POR COISA DE VALOR AQUI DPS");
-
                 if(!E2.tipo.equals("real") && !E2.tipo.equals("integer")){
                     throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E2.nome);
                 }
@@ -761,8 +959,6 @@ public class AnalisadorSintatico {
                 }
             }
             case "mod" -> {
-                System.out.println("POR COISA DE VALOR AQUI DPS");
-
                 if(!E2.tipo.equals("integer")){
                     throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E2.nome);
                 }
@@ -791,8 +987,6 @@ public class AnalisadorSintatico {
                 }
             }
             case "+" ->{
-                System.out.println("POR COISA DE VALOR AQUI DPS");
-
                 if(!E1.tipo.equals("real") && !E1.tipo.equals("integer")){
                     throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1.nome);
                 }
@@ -852,7 +1046,9 @@ public class AnalisadorSintatico {
     }
 
     public void s33(AtributoHerdado E, AtributoHerdado E1) {
-        E.tipo = E1.tipo; // subir nome?
+        E.tipo = E1.tipo;
+        E.nome = E1.nome;
+        E.endereco = E1.endereco;
     }
 
     public void s34(AtributoOperacao E, String op){
@@ -861,24 +1057,27 @@ public class AnalisadorSintatico {
     public void s35(AtributoOperacao op, AtributoHerdado E_1, AtributoHerdado E1_2 ) throws SemanticalException {
         switch (op.op){
             case "==" ->{
-                if(E_1.tipo.equals("real") || E_1.tipo.equals("integer")){
-                    if(!(E1_2.tipo.equals("real") || E1_2.tipo.equals("integer"))){
-                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                switch (E_1.tipo) {
+                    case "real", "integer" -> {
+                        if (!(E1_2.tipo.equals("real") || E1_2.tipo.equals("integer"))) {
+                            throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                        }
                     }
-                }else if(E_1.tipo.equals("char")){
-                    if(!E1_2.tipo.equals("char")){
-                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    case "char" -> {
+                        if (!E1_2.tipo.equals("char")) {
+                            throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                        }
                     }
-                }else if(E_1.tipo.equals("string")){
-                    if(!E1_2.tipo.equals("string")){
-                        throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                    case "string" -> {
+                        if (!E1_2.tipo.equals("string")) {
+                            throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
+                        }
                     }
-                }else{
-                    throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E_1.nome);
+                    default ->
+                            throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E_1.nome);
                 }
             }
             case "<>" ->{
-                System.out.println(1);
                 if(E_1.tipo.equals("real") || E_1.tipo.equals("integer")){
                     if(!(E1_2.tipo.equals("real") || E1_2.tipo.equals("integer"))){
                         throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
@@ -892,7 +1091,6 @@ public class AnalisadorSintatico {
                 }
             }
             case "<" ->{
-                System.out.println(2);
                 if(E_1.tipo.equals("real") || E_1.tipo.equals("integer")){
                     if(!(E1_2.tipo.equals("real") || E1_2.tipo.equals("integer"))){
                         throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
@@ -906,7 +1104,6 @@ public class AnalisadorSintatico {
                 }
             }
             case ">" ->{
-                System.out.println(3);
                 if(E_1.tipo.equals("real") || E_1.tipo.equals("integer")){
                     if(!(E1_2.tipo.equals("real") || E1_2.tipo.equals("integer"))){
                         throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
@@ -920,7 +1117,6 @@ public class AnalisadorSintatico {
                 }
             }
             case "<=" ->{
-                System.out.println(4);
                 if(E_1.tipo.equals("real") || E_1.tipo.equals("integer")){
                     if(!(E1_2.tipo.equals("real") || E1_2.tipo.equals("integer"))){
                         throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
@@ -934,7 +1130,6 @@ public class AnalisadorSintatico {
                 }
             }
             case ">=" ->{
-                System.out.println(5);
                 if(E_1.tipo.equals("real") || E_1.tipo.equals("integer")){
                     if(!(E1_2.tipo.equals("real") || E1_2.tipo.equals("integer"))){
                         throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E1_2.nome);
@@ -947,13 +1142,72 @@ public class AnalisadorSintatico {
                     throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E_1.nome);
                 }
             }
-
         }
-
     }
 
     public void s36(AtributoHerdado E){
         E.tipo = "boolean";
     }
 
+    public void s37(RegistroLexico id, AtributoHerdado I) throws SemanticalException{
+        if(!id.lexema.tipo.equals(I.tipo)){
+            throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, I.nome);
+        }
+    }
+
+    public void s38(RegistroLexico con) throws SemanticalException {
+        if(!con.tipoConst.equals("integer")){
+            throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, con.valorConst);
+        }
+    }
+
+    public void s39(AtributoHerdado E) throws SemanticalException {
+        if(!E.tipo.equals("boolean")){
+            throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E.nome);
+        }
+    }
+    
+    public void s40(RegistroLexico id,AtributoHerdado E, RegistroLexico con)throws SemanticalException {
+        if(id.lexema.classe.equals("vetor") ){
+            if(con.valorConst == null && !E.tipo.equals("string")){
+                throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E.nome);
+            }
+            else if(!id.lexema.tipo.equals("char") && !E.tipo.equals("string") && !id.lexema.tipo.equals(E.tipo) ){
+                throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E.nome);
+            }
+        }
+        else if(id.lexema.tipo.equals("real")){
+            if (!(E.tipo.equals("real") || E.tipo.equals("integer"))){
+                throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E.nome);
+            }
+        }else if(!id.lexema.tipo.equals(E.tipo)){
+            throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E.nome);
+        }
+    }
+
+    public void s41(RegistroLexico id, RegistroLexico con){
+        id.lexema.tipo = con.tipoConst;
+    }
+
+    public void s42(RegistroLexico id){
+        id.lexema.classe = "vetor";
+    }
+
+    public void s43(RegistroLexico id  , RegistroLexico con){
+        id.lexema.tamanho = Integer.parseInt(con.valorConst);
+    }
+    public void s44(RegistroLexico id, RegistroLexico con)  throws SemanticalException{
+        if(id.lexema.tamanho  <= Integer.parseInt(con.valorConst) || !id.lexema.classe.equals("vetor")){
+            throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.IDENTIFICADOR_NAO_DECLARADO, id.lexema.nome);
+        }
+
+    }
+
+    public void s45(AtributoHerdado E)  throws SemanticalException{
+        if(E.tipo.equals("boolean")){
+            throw new SemanticalException(analisadorLexico.linhaAtual, SemanticalErrorEnum.TIPOS_INCOMPATIVEIS, E.nome);
+        }
+    }
+    
+    
 }

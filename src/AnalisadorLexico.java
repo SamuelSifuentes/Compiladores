@@ -276,7 +276,7 @@ public class AnalisadorLexico {
                     lexema = lexema.substring(0, lexema.length() - 1);
 
                     registroLexico.token = new Token("CONST");
-                    registroLexico.tipoConst = "real";
+                    registroLexico.tipoConst = "integer";
                     registroLexico.valorConst = lexema;
                     continue;
                 }
@@ -477,6 +477,11 @@ public class AnalisadorLexico {
                         }
                         else{
                             registroLexico.lexema = entrada.getValue().get(0);
+
+                            if(registroLexico.lexema.nome.equals("true") || registroLexico.lexema.nome.equals("false")){
+                                registroLexico.tipoConst = "boolean";
+                                registroLexico.valorConst = registroLexico.lexema.nome;
+                            }
                         }
 
                         break;
@@ -497,6 +502,11 @@ public class AnalisadorLexico {
                 }
                 else{
                     registroLexico.lexema = linhaTabela.entradas.values().stream().toList().get(0).get(0);
+
+                    if(registroLexico.lexema.nome.equals("true") || registroLexico.lexema.nome.equals("false")){
+                        registroLexico.tipoConst = "boolean";
+                        registroLexico.valorConst = registroLexico.lexema.nome;
+                    }
                 }
             }
 

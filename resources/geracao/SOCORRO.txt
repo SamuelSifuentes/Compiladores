@@ -1,0 +1,86 @@
+section .data
+M:
+    resb 0x1000
+resd 1
+dd 3
+resd 1
+dd 4
+section .text
+global _start
+_start:
+mov eax, [M +4100]
+mov [M +4096], eax
+mov eax, [M +4104]
+mov [M +4100], eax
+	mov EAX, 0 			 ;
+	mov RDI, 0 			 ;
+	mov EAX, [ M + 4099 ] 			;
+	mov RDI, M + 0 			 ;
+	mov RCX, 0 			 ;
+	mov RSI, 0 			 ;
+	cmp EAX, 0 			 ;
+	jge ROTULO_1 			 ;
+	mov BL, '-' 			 ;
+	mov [RDI], BL 			 ;
+	add RDI, 1 			 ;
+	neg EAX 			 ;
+ROTULO_1:
+	mov EBX, 10 			 ;
+	mov EDX, 0 			 ;
+	idiv EBX 			 ;
+	push DX 			 ;
+	add RCX, 1 			 ;
+	cmp EAX, 0 			 ;
+	jne ROTULO_1 			 ;
+ROTULO_2:
+	pop AX 			 ;
+	add AX, '0' 			 ;
+	mov [RDI], AL 			 ;
+	add RDI, 1 			 ;
+	sub RCX, 1 			 ;
+	cmp RCX, 0 			 ;
+	jg ROTULO_2			 ;
+	mov [RDI], byte 0 ;
+
+	sub RDI, M + 0 ;
+	mov RSI, M + 0 ;
+	mov RDX, RDI ;
+	mov RAX, 1 ;
+	mov RDI, 1 ;
+	syscall
+	mov EAX, 0 			 ;
+	mov RDI, 0 			 ;
+	mov EAX, [ M + 4099 ] 			;
+	mov RDI, M + 4 			 ;
+	mov RCX, 0 			 ;
+	mov RSI, 0 			 ;
+	cmp EAX, 0 			 ;
+	jge ROTULO_3 			 ;
+	mov BL, '-' 			 ;
+	mov [RDI], BL 			 ;
+	add RDI, 1 			 ;
+	neg EAX 			 ;
+ROTULO_3:
+	mov EBX, 10 			 ;
+	mov EDX, 0 			 ;
+	idiv EBX 			 ;
+	push DX 			 ;
+	add RCX, 1 			 ;
+	cmp EAX, 0 			 ;
+	jne ROTULO_3 			 ;
+ROTULO_4:
+	pop AX 			 ;
+	add AX, '0' 			 ;
+	mov [RDI], AL 			 ;
+	add RDI, 1 			 ;
+	sub RCX, 1 			 ;
+	cmp RCX, 0 			 ;
+	jg ROTULO_4			 ;
+	mov [RDI], byte 0 ;
+
+	sub RDI, M + 4 ;
+	mov RSI, M + 4 ;
+	mov RDX, RDI ;
+	mov RAX, 1 ;
+	mov RDI, 1 ;
+	syscall

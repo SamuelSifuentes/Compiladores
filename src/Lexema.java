@@ -7,6 +7,8 @@ public class Lexema {
 
     public int tamanho;
 
+    public long endereco;
+
     public Lexema(String tokenName) {
         this.nome = tokenName;
     }

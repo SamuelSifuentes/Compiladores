@@ -4,4 +4,6 @@ public class AtributoHerdado {
     public String tipo;
 
     public String nome;
+
+    public long endereco;
 }
