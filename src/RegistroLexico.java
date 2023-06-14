@@ -4,6 +4,7 @@ public class RegistroLexico {
     int pos;
     String valorConst;
     String tipoConst;
+    int endConst;
 
     @Override
     public String toString() {

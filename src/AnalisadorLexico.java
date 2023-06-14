@@ -269,7 +269,7 @@ public class AnalisadorLexico {
             else if (currentState == 14) {
                 if (c == '.') {
                     currentState = 10;
-                } else {
+                } else if(!(c >= 48 && c <= 57)) {
                     currentState = 3;
 
                     reader.unread(c); // volta o char pro buffer
@@ -342,7 +342,7 @@ public class AnalisadorLexico {
                     currentState = 3;
 
                     registroLexico.token = new Token("CONST");
-                    registroLexico.tipoConst = "CHAR";
+                    registroLexico.tipoConst = "char";
                     registroLexico.valorConst = lexema;
                     continue;
                 } else {
@@ -408,7 +408,7 @@ public class AnalisadorLexico {
                     lexema = lexema.substring(0, lexema.length() - 1);
 
                     registroLexico.token = new Token("CONST");
-                    registroLexico.tipoConst = "CHAR";
+                    registroLexico.tipoConst = "char";
                     registroLexico.valorConst = lexema;
                     continue;
                 }

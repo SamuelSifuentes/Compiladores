@@ -1,0 +1,90 @@
+section .data
+M:
+    resb 0x10000
+	resd 1
+dd 2.0.0
+	resd 1
+section .text
+global _start
+_start:
+	movss XMM0, [M +65540]
+	movss [M +65536], XMM0
+	movss XMM0,[M + 65536]; 			 move valor da constante para um registrador
+	movss [M + 0], XMM0; 			 move valor do registrador para endereco de memoria temporaria
+	movss XMM0,[M + 65536]; 			 move valor da constante para um registrador
+	cvtss2si RAX, XMM0; 			   
+	mov [M + 65536], RAX; 			 move valor do registrador para endereco de memoria temporaria
+	mov EAX,[M +0];			  move endereco da expressao para registrador
+	mov [M +65544], EAX; 			  move valor do registrador para o endereco do identificador
+	movss XMM0,[M + 65536]; 			 move valor da constante para um registrador
+	movss [M + 0], XMM0; 			 move valor do registrador para endereco de memoria temporaria
+	movss XMM0, [ M + 65536 ]
+	mov RSI, M + 4
+	mov RCX, 0
+	mov RDI, 6
+	mov RBX, 10
+	cvtsi2ss XMM2, RBX
+	subss XMM1, XMM1
+	comiss XMM0, XMM1
+	jae ROTULO_1
+	mov DL, '-'
+	mov [RSI], DL
+	mov RDX, -1
+	cvtsi2ss XMM1, RDX
+	mulss XMM0, XMM1
+	add RSI, 1
+ROTULO_1: 
+	roundss XMM1, XMM0, 0b0011
+	subss XMM0, XMM1
+	cvtss2si rax, XMM1
+	
+ROTULO_2: 
+	add RCX, 1
+	cdq
+	idiv EBX
+	push RDX
+	cmp EAX, 0
+	jne ROTULO_2
+	sub RDI, RCX
+ROTULO_3:
+	pop RDX
+	add DL, '0'
+	mov [RSI], DL
+	add RSI, 1
+	sub RCX, 1
+	cmp RCX, 0
+	jne ROTULO_3
+	mov DL, '.'
+	mov [RSI], DL
+	add RSI, 1
+ROTULO_4:
+	cmp RDI, 0
+	jle ROTULO_5
+	mulss XMM0,XMM2
+	roundss XMM1,XMM0,0b0011
+	subss XMM0,XMM1
+	cvtss2si RDX, XMM1
+	add DL, '0'
+	mov [RSI], DL
+	add RSI, 1
+	sub RDI, 1
+	jmp ROTULO_4
+ROTULO_5:
+	mov DL, 0
+	mov [RSI], DL
+	mov RDX, RSI 
+	mov RBX, M + 4 
+	sub RDX, RBX
+	mov RSI, M + 4
+	mov RAX, 1
+	mov RDI, 1
+	syscall
+	mov RSI, M + 8
+	mov [RSI], byte 10
+	mov RDX, 1
+	mov RAX, 1
+	mov RDI, 1
+	syscall
+	mov rax, 60
+	mov rdi, 0
+	syscall

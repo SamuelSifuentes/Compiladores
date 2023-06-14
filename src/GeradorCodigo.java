@@ -1,7 +1,7 @@
 import java.util.Arrays;
 
 public class GeradorCodigo {
-    static long PC = 0x1000;
+    static long PC = 0x10000;
 
     static String generatedCode = "";
     
@@ -18,7 +18,7 @@ public class GeradorCodigo {
         generatedCode += """
                 section .data
                 M:
-                    resb 0x1000
+                    resb 0x10000
                 """;
 
         generatedCommandCode += """
@@ -28,13 +28,19 @@ public class GeradorCodigo {
                 """;
     }
 
-    public static String getNextRot()
-    {
+    public static String getNextRot(){
             return "ROTULO_" + ++labelCounter;
     }
-    
+
     public static void movePC(int offset){
         PC += offset;
+    }
+    public static void moveTC(int offset){
+        tempCounter += offset;
+    }
+
+    public static void resetTC(){
+        tempCounter = 0;
     }
 
     public static long allocateTemp(int offset){
@@ -54,48 +60,44 @@ public class GeradorCodigo {
 
 
     public static long declareInteger() {
-        generatedDeclarationCode += "resd 1\n";
+        generatedDeclarationCode += "\tresd 1\n";
 
         return getNextAvailablePosition(4);
     }
 
     public static long declareReal(){
-        generatedDeclarationCode += "resd 1\n";
+        generatedDeclarationCode += "\tresd 1\n";
 
         return getNextAvailablePosition(4);
     }
 
     public static long declareBoolean(){
-        generatedDeclarationCode += "resb 1\n";
+        generatedDeclarationCode += "\tresb 1\n";
 
-        return getNextAvailablePosition(1);
+        return getNextAvailablePosition(4);
     }
 
     public static long declareChar(){
         generatedDeclarationCode += "resb 1\n"; // resb msm?
 
-        return getNextAvailablePosition(4);
+        return getNextAvailablePosition(1);
     }
 
     public static long declareFinal(RegistroLexico cons){
-        if(cons.tipoConst.equals("integer")){
-            return declareInteger();
-        }
-        else if(cons.tipoConst.equals("real")){
-            return declareReal();
-        }
-        else if(cons.tipoConst.equals("char")){
-            return declareChar();
-        }
-        else if(cons.tipoConst.equals("boolean")){
-            return declareBoolean();
-        }
-        return -1;
+        return switch (cons.lexema.tipo) {
+            case "integer" -> declareInteger();
+            case "real" -> declareReal();
+            case "char" -> declareChar();
+            case "boolean" -> declareBoolean();
+            default -> -1;
+        };
     }
 
     public static void writeInteger(String value, long varAddr){
-        generatedDeclarationCode += "dd " + value + "\n";
+        generatedDeclarationCode += "\tdd " + value + "\n";
         long constAddr = PC;
+
+        movePC(4);
 
         writeVariable(constAddr, varAddr);
     }
@@ -104,187 +106,635 @@ public class GeradorCodigo {
          if(value.length() > 1 &&(value.charAt(0) == '.' ||(value.contains("-") && value.charAt(1) == '.'))){
             String[] s = value.split("\\.");
             value = s[0]+"0."+s[1];
-        }
+         }else if(!value.contains(".")){
+             value = value+".0";
+         }
 
         generatedDeclarationCode += "dd " + value + "\n";
         long constAddr = PC;
 
-        writeVariable(constAddr, varAddr);
+        movePC(4);
+
+        generatedCommandCode += "\tmovss XMM0, [M +" + constAddr + "]\n";
+        generatedCommandCode += "\tmovss [M +" + varAddr + "], XMM0\n";
     }
 
     public static void writeBoolean(String value, long varAddr){
-        generatedDeclarationCode += "dd" + (value.equals("true")? 1 : 0);
+        generatedDeclarationCode += "dd" + (value.equals("true")? 1 : 0) + "\n";
         long constAddr = PC;
+
+        movePC(1);
 
         writeVariable(constAddr, varAddr);
     }
 
+    public static void writeChar(String value, long varAddr){
+        generatedDeclarationCode += "db" + value + "\n";
+        long constAddr = PC;
+
+        movePC(1);
+
+        generatedCommandCode += "mov AL, [M +" + constAddr + "]\n";
+        generatedCommandCode += "mov [M +" + varAddr + "], AL\n";
+    }
+
+    public static void writeFinal(String value, long varAddr, String tipo){
+        switch (tipo) {
+            case "integer" -> writeInteger(value, varAddr);
+            case "real" -> writeReal(value, varAddr);
+            case "char" -> writeChar(value, varAddr);
+            case "boolean" -> writeBoolean(value, varAddr);
+        };
+    }
+
     public static void writeVariable(long addr1, long addr2){
-        generatedCommandCode += "mov eax, [M +" + addr1 + "]\n";
-        generatedCommandCode += "mov [M +" + addr2 + "], eax\n";
+        generatedCommandCode += "mov EAX, [M +" + addr1 + "]\n";
+        generatedCommandCode += "mov [M +" + addr2 + "], EAX\n";
+    }
+
+    public static void print(long addr, String tipo, boolean isEndLine){
+        switch (tipo) {
+            case "integer" -> printInteger(addr);
+            case "real" -> printReal(addr);
+            case "char" -> printChar(addr);
+        }
+
+        if(isEndLine){
+            printEndLine();
+        }
     }
 
     public static void printInteger(long addr){
+        String rot1 = getNextRot();
+        String rot2 = getNextRot();
+
         long actualMemoryPosition = allocateTemp(4);
 
-        // Labels
-        String label0 = getNextRot();
-        String label1 = getNextRot();
+        generatedCommandCode += "\tmov EAX, 0 \n";
+        generatedCommandCode += "\tmov RDI, 0 \n";
+        generatedCommandCode += "\tmov EAX, [ M + " + addr + " ] \n";
+        generatedCommandCode += "\tmov RDI, M + " + actualMemoryPosition + " \n";
+        generatedCommandCode += "\tmov RCX, 0 \n";
+        generatedCommandCode += "\tmov RSI, 0 \n";
+        generatedCommandCode += "\tcmp EAX, 0 \n";
+        generatedCommandCode += "\tjge " + rot1 + " \n";
+        generatedCommandCode += "\tmov BL, \'-\' \n";
+        generatedCommandCode += "\tmov [RDI], BL \n";
+        generatedCommandCode += "\tadd RDI, 1 \n";
+        generatedCommandCode += "\tneg EAX \n";
+        generatedCommandCode += rot1 + ":\n";
+        generatedCommandCode += "\tmov EBX, 10 \n";
+        generatedCommandCode += "\tmov EDX, 0 \n";
+        generatedCommandCode += "\tidiv EBX \n";
 
-        generatedCommandCode += "\tmov EAX, 0 \t\t\t ; \n";
-        generatedCommandCode += "\tmov RDI, 0 \t\t\t ; \n";
+        generatedCommandCode += "\tpush DX \n";
+        generatedCommandCode += "\tadd RCX, 1 \n";
+        generatedCommandCode += "\tcmp EAX, 0 \n";
+        generatedCommandCode += "\tjne " + rot1 + " \n";
+        generatedCommandCode += rot2 + ":\n";
 
-        generatedCommandCode += "\tmov EAX, [ M + " + addr + " ] \t\t\t;\n";
-        generatedCommandCode += "\tmov RDI, M + " + actualMemoryPosition + " \t\t\t ;\n";
-        generatedCommandCode += "\tmov RCX, 0 \t\t\t ; \n";
-        generatedCommandCode += "\tmov RSI, 0 \t\t\t ; \n";
-
-        generatedCommandCode += "\tcmp EAX, 0 \t\t\t ; \n";
-        generatedCommandCode += "\tjge " + label0 + " \t\t\t ; \n";
-
-        generatedCommandCode += "\tmov BL, \'-\' \t\t\t ; \n";
-        generatedCommandCode += "\tmov [RDI], BL \t\t\t ; \n";
-        generatedCommandCode += "\tadd RDI, 1 \t\t\t ; \n";
-        generatedCommandCode += "\tneg EAX \t\t\t ; \n";
-
-        generatedCommandCode += label0 + ":\n";
-        generatedCommandCode += "\tmov EBX, 10 \t\t\t ; \n";
-        generatedCommandCode += "\tmov EDX, 0 \t\t\t ; \n";
-        generatedCommandCode += "\tidiv EBX \t\t\t ;\n";
-        generatedCommandCode += "\tpush DX \t\t\t ; \n";
-        generatedCommandCode += "\tadd RCX, 1 \t\t\t ; \n";
-        generatedCommandCode += "\tcmp EAX, 0 \t\t\t ; \n";
-        generatedCommandCode += "\tjne " + label0 + " \t\t\t ; \n";
-
-        generatedCommandCode += label1 + ":\n";
-        generatedCommandCode += "\tpop AX \t\t\t ; \n";
-        generatedCommandCode += "\tadd AX, \'0\' \t\t\t ; \n";
-        generatedCommandCode += "\tmov [RDI], AL \t\t\t ; \n";
-
-        generatedCommandCode += "\tadd RDI, 1 \t\t\t ; \n";
-        generatedCommandCode += "\tsub RCX, 1 \t\t\t ; \n";
-        generatedCommandCode += "\tcmp RCX, 0 \t\t\t ; \n";
-        generatedCommandCode += "\tjg " + label1 + "\t\t\t ; \n";
-
-        generatedCommandCode += "\tmov [RDI], byte 0 ; \n\n";
+        generatedCommandCode += "\tpop AX \n";
+        generatedCommandCode += "\tadd AX, \'0\' \n";
+        generatedCommandCode += "\tmov [RDI], AL \n";
+        generatedCommandCode += "\tadd RDI, 1 \n";
+        generatedCommandCode += "\tsub RCX, 1 \n";
+        generatedCommandCode += "\tcmp RCX, 0 \n";
+        generatedCommandCode += "\tjg " + rot2 + "\n";
+        generatedCommandCode += "\tmov [RDI], byte 0 \n";
         generatedCommandCode += "\tsub RDI, M + " + actualMemoryPosition + " ; \n";
-
-        // System call for write
         generatedCommandCode += "\tmov RSI, M + " + actualMemoryPosition + " ; \n";
-        generatedCommandCode += "\tmov RDX, RDI ; \n";
+        generatedCommandCode += "\tmov RDX, RDI\n";
         generatedCommandCode += "\tmov RAX, 1 ; \n";
-        generatedCommandCode += "\tmov RDI, 1 ; \n";
+        generatedCommandCode += "\tmov RDI, 1\n";
         generatedCommandCode += "\tsyscall\n";
     }
 
     public static void printReal(long addr){
-        long actualMemoryPosition = allocateTemp(4);
+        String rot0 = getNextRot();
+        String rot1 = getNextRot();
+        String rot2 = getNextRot();
+        String rot3 = getNextRot();
+        String rot4 = getNextRot();
 
-        String label0 = getNextRot();
-        String label1 = getNextRot();
-        String label2 = getNextRot();
-        String label3 = getNextRot();
-        String label4 = getNextRot();
+        long memPos = allocateTemp(4);
 
-        generatedCommandCode += "\tmovss XMM0, [ M + " + addr + " ] \t\t\t ; Real a ser convertido\n";
-        generatedCommandCode += "\tmov RSI, M + " + actualMemoryPosition + " \t\t\t ; End. temporário\n";
-        generatedCommandCode += "\tmov RCX, 0 \t\t\t ; Contador pilha\n";
-        generatedCommandCode += "\tmov RDI, 6 \t\t\t ; Precisão 6 casas compart\n";
-        generatedCommandCode += "\tmov RBX, 10 \t\t\t ; Divisor\n";
-        generatedCommandCode += "\tcvtsi2ss XMM2, RBX \t\t\t ; Divisor real\n";
-        generatedCommandCode += "\tsubss XMM1, XMM1 \t\t\t ; Zera registrador\n";
-        generatedCommandCode += "\tcomiss XMM0, XMM1 \t\t\t ; Verifica sinal\n";
-        generatedCommandCode += "\tjae " + label0 + " \t\t\t ; Salta se número positivo\n";
-        generatedCommandCode += "\tmov DL, \'-\' \t\t\t; Senão, escreve sinal –\n";
+        generatedCommandCode += "\tmovss XMM0, [ M + " + addr + " ]\n";
+        generatedCommandCode += "\tmov RSI, M + " + memPos + "\n";
+        generatedCommandCode += "\tmov RCX, 0\n";
+        generatedCommandCode += "\tmov RDI, 6\n";
+        generatedCommandCode += "\tmov RBX, 10\n";
+        generatedCommandCode += "\tcvtsi2ss XMM2, RBX\n";
+        generatedCommandCode += "\tsubss XMM1, XMM1\n";
+        generatedCommandCode += "\tcomiss XMM0, XMM1\n";
+        generatedCommandCode += "\tjae " + rot0 + "\n";
+        generatedCommandCode += "\tmov DL, \'-\'\n";
         generatedCommandCode += "\tmov [RSI], DL\n";
-        generatedCommandCode += "\tmov RDX, -1 \t\t\t ; Carrega -1 em RDX\n";
-        generatedCommandCode += "\tcvtsi2ss XMM1, RDX \t\t\t ; Converte para real\n";
-        generatedCommandCode += "\tmulss XMM0, XMM1 \t\t\t ; Toma módulo\n";
-        generatedCommandCode += "\tadd RSI, 1 \t\t\t ; Incrementa índice\n";
-        generatedCommandCode += label0 + ": \n";
-        generatedCommandCode += "\troundss XMM1, XMM0, 0b0011 \t\t\t ; Parte inteira XMM1\n";
-        generatedCommandCode += "\tsubss XMM0, XMM1 \t\t\t ; Parte frac XMM0\n";
-        generatedCommandCode += "\tcvtss2si rax, XMM1 \t\t\t ; Convertido para int\n";
-        generatedCommandCode += "\t; Converte parte inteira que está em rax\n";
-        generatedCommandCode += label1 + ": \n";
-        generatedCommandCode += "\tadd RCX, 1 \t\t\t ; Incrementa contador\n";
-        generatedCommandCode += "\tcdq \t\t\t ; Estende EDX:EAX p/ div.\n";
-        generatedCommandCode += "\tidiv EBX \t\t\t ; Divide EDX;EAX por EBX\n";
-        generatedCommandCode += "\tpush RDX \t\t\t ; Empilha valor do resto\n";
-        generatedCommandCode += "\tcmp EAX, 0 \t\t\t ; Verifica se quoc. é 0\n";
-        generatedCommandCode += "\tjne " + label1 + " \t\t\t ; Se não é 0, continua\n";
-        generatedCommandCode += "\tsub RDI, RCX \t\t\t;decrementa precisao\n";
-        generatedCommandCode += "\t; Agora, desemp valores e escreve parte int\n";
-        generatedCommandCode += label2 + ":\n";
-        generatedCommandCode += "\tpop RDX \t\t\t ; Desempilha valor\n";
-        generatedCommandCode += "\tadd DL, \'0\' \t\t\t ; Transforma em caractere\n";
-        generatedCommandCode += "\tmov [RSI], DL \t\t\t ; Escreve caractere\n";
-        generatedCommandCode += "\tadd RSI, 1 \t\t\t ; Incrementa base\n";
-        generatedCommandCode += "\tsub RCX, 1 \t\t\t ; Decrementa contador\n";
-        generatedCommandCode += "\tcmp RCX, 0 \t\t\t ; Verifica pilha vazia\n";
-        generatedCommandCode += "\tjne " + label2 + " \t\t\t ; Se não pilha vazia, loop\n";
-        generatedCommandCode += "\tmov DL, \'.\' \t\t\t ; Escreve ponto decimal\n";
+        generatedCommandCode += "\tmov RDX, -1\n";
+        generatedCommandCode += "\tcvtsi2ss XMM1, RDX\n";
+        generatedCommandCode += "\tmulss XMM0, XMM1\n";
+        generatedCommandCode += "\tadd RSI, 1\n";
+        generatedCommandCode += rot0 + ": \n";
+        generatedCommandCode += "\troundss XMM1, XMM0, 0b0011\n";
+        generatedCommandCode += "\tsubss XMM0, XMM1\n";
+        generatedCommandCode += "\tcvtss2si rax, XMM1\n";
+        generatedCommandCode += "\t\n";
+        generatedCommandCode += rot1 + ": \n";
+        generatedCommandCode += "\tadd RCX, 1\n";
+        generatedCommandCode += "\tcdq\n";
+        generatedCommandCode += "\tidiv EBX\n";
+        generatedCommandCode += "\tpush RDX\n";
+        generatedCommandCode += "\tcmp EAX, 0\n";
+        generatedCommandCode += "\tjne " + rot1 + "\n";
+        generatedCommandCode += "\tsub RDI, RCX\n";
+        generatedCommandCode += rot2 + ":\n";
+        generatedCommandCode += "\tpop RDX\n";
+        generatedCommandCode += "\tadd DL, \'0\'\n";
         generatedCommandCode += "\tmov [RSI], DL\n";
-        generatedCommandCode += "\tadd RSI, 1 \t\t\t ; Incrementa base\n";
-        generatedCommandCode += "\t; Converte parte fracionaria que está em XMM0\n";
-        generatedCommandCode += label3 + ":\n";
-        generatedCommandCode += "\tcmp RDI, 0 \t\t\t ; Verifica precisao\n";
-        generatedCommandCode += "\tjle " + label4 + " \t\t\t ; Terminou precisao ?\n";
-        generatedCommandCode += "\tmulss XMM0,XMM2 \t\t\t ; Desloca para esquerda\n";
-        generatedCommandCode += "\troundss XMM1,XMM0,0b0011 \t\t\t ; Parte inteira XMM1\n";
-        generatedCommandCode += "\tsubss XMM0,XMM1 \t\t\t ; Atualiza XMM0\n";
-        generatedCommandCode += "\tcvtss2si RDX, XMM1\t\t\t ; Convertido para int\n";
-        generatedCommandCode += "\tadd DL, \'0\' \t\t\t ; Transforma em caractere\n";
-        generatedCommandCode += "\tmov [RSI], DL \t\t\t ; Escreve caractere\n";
-        generatedCommandCode += "\tadd RSI, 1 \t\t\t ; Incrementa base\n";
-        generatedCommandCode += "\tsub RDI, 1 \t\t\t ; Decrementa precisão\n";
-        generatedCommandCode += "\tjmp " + label3 + "\n";
-        generatedCommandCode += "\t; Impressão\n";
-        generatedCommandCode += label4 + ":\n";
-        generatedCommandCode += "\tmov DL, 0 \t\t\t ; Fim string, opcional\n";
-        generatedCommandCode += "\tmov [RSI], DL \t\t\t ; Escreve caractere\n";
-        generatedCommandCode += "\tmov RDX, RSI ; Calc tam str convertido\n";
-        generatedCommandCode += "\tmov RBX, M + " + actualMemoryPosition + " \n";
-        generatedCommandCode += "\tsub RDX, RBX \t\t\t ; Tam=RSI-M-buffer.end\n";
-        generatedCommandCode += "\tmov RSI, M + " + actualMemoryPosition + " \t\t\t; Endereço do buffer\n";
+        generatedCommandCode += "\tadd RSI, 1\n";
+        generatedCommandCode += "\tsub RCX, 1\n";
+        generatedCommandCode += "\tcmp RCX, 0\n";
+        generatedCommandCode += "\tjne " + rot2 + "\n";
+        generatedCommandCode += "\tmov DL, \'.\'\n";
+        generatedCommandCode += "\tmov [RSI], DL\n";
+        generatedCommandCode += "\tadd RSI, 1\n";
+        generatedCommandCode += rot3 + ":\n";
+        generatedCommandCode += "\tcmp RDI, 0\n";
+        generatedCommandCode += "\tjle " + rot4 + "\n";
+        generatedCommandCode += "\tmulss XMM0,XMM2\n";
+        generatedCommandCode += "\troundss XMM1,XMM0,0b0011\n";
+        generatedCommandCode += "\tsubss XMM0,XMM1\n";
+        generatedCommandCode += "\tcvtss2si RDX, XMM1\n";
+        generatedCommandCode += "\tadd DL, \'0\'\n";
+        generatedCommandCode += "\tmov [RSI], DL\n";
 
-        generatedCommandCode += "\tmov RAX, 1 ; Chamada para saída\n";
-        generatedCommandCode += "\tmov RDI, 1 ; Chamada para tela\n";
+        generatedCommandCode += "\tadd RSI, 1\n";
+        generatedCommandCode += "\tsub RDI, 1\n";
+        generatedCommandCode += "\tjmp " + rot3 + "\n";
+        generatedCommandCode += rot4 + ":\n";
+        generatedCommandCode += "\tmov DL, 0\n";
+        generatedCommandCode += "\tmov [RSI], DL\n";
+        generatedCommandCode += "\tmov RDX, RSI \n";
+        generatedCommandCode += "\tmov RBX, M + " + memPos + " \n";
+        generatedCommandCode += "\tsub RDX, RBX\n";
+        generatedCommandCode += "\tmov RSI, M + " + memPos + "\n";
+        generatedCommandCode += "\tmov RAX, 1\n";
+        generatedCommandCode += "\tmov RDI, 1\n";
         generatedCommandCode += "\tsyscall\n";
     }
 
-    public static void printString(long addr)
+    public static void printChar(long addr){
+        generatedCommandCode += "\tmov RSI, M + " + addr + "\n";
+        generatedCommandCode += "\tmov RDX, 1\n";
+
+        generatedCommandCode += "\tmov RAX, 1\n";
+        generatedCommandCode += "\tmov RDI, 1\n";
+        generatedCommandCode += "\tsyscall\n";
+    }
+
+    public static void printEndLine()
     {
-        // Labels
-        String labelStartLoop = getNextRot();
-        String labelEndLoop = getNextRot();
+        long buffer = allocateTemp(1);
 
-        generatedCode += "\tmov RSI, M + " + addr + " \t\t\t ; Copiando endereço da string para um registrador de índice\n";
-        generatedCode += "\tmov RDX, 0 \t\t\t ; contador de caracteres = 0\n";
+        generatedCommandCode += "\tmov RSI, M + " + buffer + "\n";
+        generatedCommandCode += "\tmov [RSI], byte 10\n";
+        generatedCommandCode += "\tmov RDX, 1\n";
+        generatedCommandCode += "\tmov RAX, 1\n";
+        generatedCommandCode += "\tmov RDI, 1\n";
+        generatedCommandCode += "\tsyscall\n";
+    }
 
-        // Begin of loop to calculate the length of the string
-        generatedCode += "\t; Loop para calcular tamanho da string\n";
-        generatedCode += labelStartLoop + ": \t\t\t ; Inicio do loop\n";
-        generatedCode += "\tmov AL, [RSI] \t\t\t ; Leitura de caractere na posicao rax da memória\n";
-        generatedCode += "\tcmp AL, 0 \t\t\t ; Verificação de flag de fim de string\n";
-        generatedCode += "\tje " + labelEndLoop + " \t\t\t ; Se caractere lido = flag de fim de string finalizar loop\n";
 
-        generatedCode += "\tadd RDX, 1 \t\t\t ; Incrementando numero de caracteres\n";
-        generatedCode += "\tadd RSI, 1 \t\t\t ; Incrementando indice da string\n";
-        generatedCode += "\tjmp " + labelStartLoop + "  ; Se caractere lido != flag de fim de string continuar loop\n";
+    public static void read(long addr, String tipo){
+        switch (tipo) {
+            case "integer" -> readInteger(addr);
+            case "real" -> readReal(addr);
+            case "char" -> readChar(addr);
+        }
+    }
 
-        // End of loop
-        generatedCode += labelEndLoop + ": ; Fim do loop\n";
+    public static void readInteger(long addr) {
+        String rot0 = getNextRot();
+        String rot1 = getNextRot();
+        String rot2 = getNextRot();
+        String rot4 = getNextRot();
 
-        // System call for write
-        generatedCode += "\tmov RSI, M + " + addr + " \t\t\t ; Copiando endereço inicial da string\n";
-        generatedCode += "\tmov RAX, 1 \t\t\t ; Chamada para saída\n";
-        generatedCode += "\tmov RDI, 1 \t\t\t ; Chamada para tela\n";
-        generatedCode += "\tsyscall\n";
+        long buffer = allocateTemp(12);
+
+        generatedCommandCode += "\tmov RSI, M + " + buffer + "\n";
+        generatedCommandCode += "\tmov RDX, 100h\n";
+        generatedCommandCode += "\tmov RAX, 0\n";
+        generatedCommandCode += "\tmov RDI, 0\n";
+        generatedCommandCode += "\tsyscall\n";
+        generatedCommandCode += "\tmov EAX, 0\n";
+        generatedCommandCode += "\tmov EBX, 0\n";
+        generatedCommandCode += "\tmov ECX, 10\n";
+        generatedCommandCode += "\tmov RDX, 1\n";
+        generatedCommandCode += "\tmov RSI, M + " + buffer + "\n";
+        generatedCommandCode += "\tmov BL, [RSI]\n";
+        generatedCommandCode += "\tcmp BL, \'-\'\n";
+        generatedCommandCode += "\tjne " + rot0 + " \n";
+        generatedCommandCode += "\tmov RDX, -1 \n";
+        generatedCommandCode += "\tadd RSI, 1 \n";
+        generatedCommandCode += "\tmov BL, [RSI]\n";
+        generatedCommandCode += rot0 + ":\n";
+        generatedCommandCode += "\tpush RDX\n";
+        generatedCommandCode += "\tmov EDX, 0\n";
+        generatedCommandCode += rot1 + ":\n";
+        generatedCommandCode += "\tcmp BL, 0Ah\n";
+        generatedCommandCode += "\tje " + rot2 + "\n";
+        generatedCommandCode += "\timul ECX\n";
+        generatedCommandCode += "\tsub BL, \'0\'\n";
+        generatedCommandCode += "\tadd EAX, EBX\n";
+        generatedCommandCode += "\tadd RSI, 1\n";
+        generatedCommandCode += "\tmov BL, [RSI]\n";
+        generatedCommandCode += "\tjmp " + rot1 + "\n";
+        generatedCommandCode += rot2 + ":\n";
+        generatedCommandCode += "\tpop CX \n";
+        generatedCommandCode += "\tcmp CX, 0\n";
+        generatedCommandCode += "\tjg " + rot4 + "\n";
+        generatedCommandCode += "\tneg EAX\n";
+        generatedCommandCode += rot4 + ":\n";
+        generatedCommandCode += "\tmov [ M + " + addr + " ], EAX\n";
+    }
+
+    public static void readReal(long addr){
+        String rot0 = getNextRot();
+        String rot1 = getNextRot();
+        String rot2 = getNextRot();
+        String rot3 = getNextRot();
+        String rotEnd = getNextRot();
+
+        long buffer = allocateTemp(12);
+
+        generatedCommandCode += "\tmov RSI, M + " + buffer + "\n";
+        generatedCommandCode += "\tmov RDX, 100h\n";
+        generatedCommandCode += "\tmov RAX, 0\n";
+        generatedCommandCode += "\tmov RDI, 0\n";
+        generatedCommandCode += "\tsyscall\n";
+        generatedCommandCode += "\tmov RAX, 0\n";
+        generatedCommandCode += "\tsubss XMM0, XMM0\n";
+        generatedCommandCode += "\tmov RBX, 0\n";
+        
+        generatedCommandCode += "\tmov RCX, 10\n";
+        generatedCommandCode += "\tcvtsi2ss XMM3, RCX\n";
+        generatedCommandCode += "\tmovss XMM2, XMM3\n";
+        generatedCommandCode += "\tmov RDX, 1\n";
+        generatedCommandCode += "\tmov RSI, M+" + buffer + "\n";
+        generatedCommandCode += "\tmov BL, [RSI]\n";
+        generatedCommandCode += "\tcmp BL, '-' \n";
+        generatedCommandCode += "\tjne " + rot0 + "\n";
+        generatedCommandCode += "\tmov RDX, -1\n";
+        generatedCommandCode += "\tadd RSI, 1\n";
+        generatedCommandCode += "\tmov BL, [RSI]\n";
+        generatedCommandCode += rot0 + ":\n";
+        generatedCommandCode += "\tpush RDX\n";
+        generatedCommandCode += "\tmov RDX, 0\n";
+        generatedCommandCode += rot1 + ":\n";
+        generatedCommandCode += "\tcmp BL, 0Ah\n";
+        generatedCommandCode += "\tje " + rot2 + "\n";
+        generatedCommandCode += "\tcmp BL, \'.\'\n";
+        generatedCommandCode += "\tje " + rot3 + "\n";
+        generatedCommandCode += "\timul ECX\n";
+        generatedCommandCode += "\tsub BL, \'0\'\n";
+        generatedCommandCode += "\tadd EAX, EBX\n";
+        generatedCommandCode += "\tadd RSI, 1\n";
+        generatedCommandCode += "\tmov BL, [RSI]\n";
+        generatedCommandCode += "\tjmp " + rot1 + "\n";
+
+        generatedCommandCode += rot3 + ":\n";
+        generatedCommandCode += "\tadd RSI, 1 \n";
+        generatedCommandCode += "\tmov BL, [RSI]\n";
+        generatedCommandCode += "\tcmp BL, 0Ah\n";
+        generatedCommandCode += "\tje " + rot2 + "\n";
+        generatedCommandCode += "\tsub BL, \'0\'\n";
+        generatedCommandCode += "\tcvtsi2ss XMM1, RBX\n";
+        generatedCommandCode += "\tdivss XMM1, XMM2\n";
+        generatedCommandCode += "\taddss XMM0, XMM1\n";
+        
+        generatedCommandCode += "\tmulss XMM2, XMM3\n";
+        generatedCommandCode += "\tjmp " + rot3 + "\n";
+        generatedCommandCode += rot2 + ":\n";
+        generatedCommandCode += "\tcvtsi2ss XMM1, RAX\n";
+        generatedCommandCode += "\taddss XMM0, XMM1\n";
+        generatedCommandCode += "\tpop RCX\n";
+        generatedCommandCode += "\tcvtsi2ss XMM1, RCX\n";
+        generatedCommandCode += "\tmulss XMM0, XMM1\n";
+        
+        generatedCommandCode += rotEnd + ":\n";
+        generatedCommandCode += "\tmovss [ M + " + addr + " ], XMM0\n";
+    }
+    
+    public static void readChar(long addr){
+        String rot0 = getNextRot();
+        long buffer = allocateTemp(1);
+
+        generatedCommandCode += "\tmov RSI, M + " + addr + "\n";
+        generatedCommandCode += "\tmov RDX, 1\n";
+        generatedCommandCode += "\tmov RAX, 0\n";
+        generatedCommandCode += "\tmov RDI, 0\n";
+        generatedCommandCode += "\tsyscall\n\n";
+        generatedCommandCode += rot0 + ":\n";
+        generatedCommandCode += "\tmov RDX, 1\n";
+        generatedCommandCode += "\tmov RSI, M + " + buffer + "\n";
+        generatedCommandCode += "\tmov RAX, 0\n";
+        generatedCommandCode += "\tmov RDI, 0\n";
+        generatedCommandCode += "\tsyscall\n\n";
+        generatedCommandCode += "\tmov AL,[ M + " + buffer + " ]\n";
+        generatedCommandCode += "\tcmp AL, 0xA\n";
+        generatedCommandCode += "\tjne " + rot0 + "\n";
+    }
+
+
+    public static void inicioTesteFor(String ROT1){
+        generatedCommandCode += ROT1+ ":\n";
+    }
+    public static void fimTesteFor(String ROT2,String ROT3,String ROT4){
+
+        generatedCommandCode += "\tcmp EAX, 1 \t\t\t ; \n"; // TODO VERIFICAR DE ONDE O VALOR BOLEANO VAI VIR
+        generatedCommandCode += "\tje " + ROT2 + " \t\t\t ; \n";
+        generatedCommandCode += "\tjmp " + ROT4 + " \t\t\t ; \n";
+        generatedCommandCode += ROT3+ ":\n";
+    }
+    public static void inicioIncrementFor(String ROT3){
+        generatedCommandCode += ROT3+ ":\n";
+    }
+    public static void fimIncrementFor(String ROT1){
+        generatedCommandCode += "\tjmp " + ROT1 + " \t\t\t ; \n";
+    }
+    public static void inicioBlocoFor(String ROT2){
+        generatedCommandCode += ROT2+ ":\n";
+    }
+    public static void fimBlocoFor(String ROT3,String ROT4){
+        generatedCommandCode += "\tjmp " + ROT3 + " \t\t\t ; \n";
+        generatedCommandCode += ROT4+ ":\n";
     }
 
     public static String finalizeCode(){
+        generatedCommandCode += "\tmov rax, 60\n";
+        generatedCommandCode += "\tmov rdi, 0\n";
+        generatedCommandCode += "\tsyscall\n";
+
+
         return generatedCode + generatedDeclarationCode + generatedCommandCode;
     }
+
+    public static void lerConst(RegistroLexico reg) {
+        int tamanhoTipo=0;
+        switch (reg.tipoConst){
+            case "integer" ->{
+                generatedCommandCode += "\tmov EAX," + reg.valorConst+"; \t\t\t move valor da constante para um registrador\n";
+                generatedCommandCode += "\tmov [M + " + tempCounter +"], EAX; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                tamanhoTipo=4;
+            }
+            case "real" ->{
+                if(reg.valorConst.length() > 1 &&(reg.valorConst.charAt(0) == '.' ||(reg.valorConst.contains("-") && reg.valorConst.charAt(1) == '.'))){
+                    String[] s = reg.valorConst.split("\\.");
+                    reg.valorConst = s[0]+"0."+s[1];
+                }else if(!reg.valorConst.contains(".")){
+                    reg.valorConst  =  reg.valorConst +".0";
+                }
+                generatedDeclarationCode += "\tdd "+ reg.valorConst+"\n";
+                generatedCommandCode += "\tmovss XMM0,[M + " +PC +"]; \t\t\t move valor da constante para um registrador\n";
+                movePC(4);
+                generatedCommandCode += "\tmovss [M + " + tempCounter +"], XMM0; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                tamanhoTipo=4;
+            }
+            case "char" ->{
+                generatedCommandCode += "\tmov AL," + reg.valorConst+"; \t\t\t move valor da constante para um registrador\n";
+                generatedCommandCode += "\tmov [M + " + tempCounter +"], AL; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                tamanhoTipo=1;
+            }
+            case "boolean"->{
+                generatedCommandCode += "\tmov AL," + (reg.valorConst.equals("true")?1:0) +"; \t\t\t move valor da constante para um registrador\n";
+                generatedCommandCode += "\tmov [M + " + tempCounter +"], AL; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                tamanhoTipo=1;
+            }
+        }
+        reg.endConst = tempCounter;
+        moveTC(tamanhoTipo);
+    }
+
+    public static void atribuicaoEx(RegistroLexico id, AtributoHerdado e) {
+        switch (id.lexema.tipo){
+            case "integer" ->{
+                generatedCommandCode += "\tmov EAX,[M +" + e.endereco+"];\t\t\t  move endereco da expressao para registrador\n";
+                generatedCommandCode += "\tmov [M +" + id.lexema.endereco+"], EAX; \t\t\t  move valor do registrador para o endereco do identificador\n";
+            }
+            case "real" ->{
+                generatedCommandCode += "\tmovss XMM0,[M +" + e.endereco+"];\t\t\t  Le endereco da expressao e coloca em registrador\n";
+                generatedCommandCode += "\tmovss [M +" + id.lexema.endereco+"], XMM0; \t\t\t  move valor do registrador para o endereco do identificador\n";
+            }
+            case "char" ->{
+                generatedCommandCode += "\tmov AL,[M +" + e.endereco+"];\t\t\t Le endereco da expressao e coloca em registrador\n";
+                generatedCommandCode += "\tmov [M +" + id.lexema.endereco+"], AL; \t\t\t  move valor do registrador para o endereco do identificador\n";
+            }
+            //case "boolean"
+        }
+    }
+    public static void lerId(RegistroLexico reg) {
+        int tamanhoTipo=0;
+        switch (reg.lexema.tipo){
+            case "integer" ->{
+                generatedCommandCode += "\tmov EAX,[M + " + reg.lexema.endereco+"]; \t\t\t move valor da constante para um registrador\n";
+                generatedCommandCode += "\tmov [M + " + tempCounter +"], EAX; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                tamanhoTipo=4;
+            }
+            case "real" ->{
+                generatedCommandCode += "\tmovss XMM0,[M + " +reg.lexema.endereco +"]; \t\t\t move valor da constante para um registrador\n";
+                generatedCommandCode += "\tmovss [M + " + tempCounter +"], XMM0; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                tamanhoTipo=4;
+            }
+            case "char" ->{
+                generatedCommandCode += "\tmov AL,[M +" + reg.lexema.endereco+"]; \t\t\t move valor da constante para um registrador\n";
+                generatedCommandCode += "\tmov [M + " + tempCounter +"], AL; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                tamanhoTipo=1;
+            }
+            case "boolean"->{
+                generatedCommandCode += "\tmov AL,[M +" + reg.lexema.endereco +"]; \t\t\t move valor da constante para um registrador\n";
+                generatedCommandCode += "\tmov [M + " + tempCounter +"], AL; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                tamanhoTipo=1;
+            }
+        }
+        reg.endConst = tempCounter;
+        moveTC(tamanhoTipo);
+    }
+
+    public static void integer2real(AtributoHerdado e) {
+        generatedCommandCode += "\tmov EAX,[M + " + e.endereco+"]; \t\t\t move valor da constante para um registrador\n";
+        generatedCommandCode += "\tcdqe \t\t\t; Expandindo o valor do integer\n";
+        generatedCommandCode += "\tcvtsi2ss XMM0, RAX; \t\t    \n";
+        generatedCommandCode += "\tmovss [M + " + e.endereco +"], XMM0; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+    }
+
+    public static void real2integer(AtributoHerdado e) {
+
+
+       generatedCommandCode += "\tmovss XMM0,[M + " + e.endereco+"]; \t\t\t move valor da constante para um registrador\n";
+       generatedCommandCode += "\tcvtss2si RAX, XMM0; \t\t\t   \n";
+       generatedCommandCode += "\tmov [M + " + e.endereco +"], RAX; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+    }
+
+    public static void not(AtributoHerdado atributoE4) {
+        generatedCommandCode += "\tmov AL, [M + " + atributoE4.endereco +"]; \t\t\t move valor da constante para um registrador\n";
+        generatedCommandCode += "\tneg AL; \t\t\t move valor da constante para um registrador\n";
+        generatedCommandCode += "\tmov [M + " + atributoE4.endereco +"], AL; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+    }
+
+    public static void operacoesComplexas(AtributoHerdado atributoPai, AtributoHerdado atributoE, AtributoOperacao op) {
+        switch (op.op) {
+            case "*" -> {
+                boolean flagReal = false;
+                if(atributoPai.tipo.equals("real")||atributoE.tipo.equals("real")){
+                    if( atributoE.tipo.equals("integer") )
+                        integer2real(atributoE);
+                    if( atributoPai.tipo.equals("integer") )
+                        integer2real(atributoPai);
+                    flagReal = true;
+                }
+                if(flagReal) {
+                    generatedCommandCode += "\tmovss XMM0,[M + " + atributoPai.endereco + "]; \t\t\t move valor da memoria para um registrador\n";
+                    generatedCommandCode += "\tmovss XMM1,[M + " + atributoE.endereco + "]; \t\t\t move valor da memoria para um registrador\n";
+                    generatedCommandCode += "\tmulss XMM0, XMM1; \t\t\t multiplica os valores\n";
+                    generatedCommandCode += "\tmovss [M + " + tempCounter + "], XMM0; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                    atributoPai.endereco = tempCounter;
+                    moveTC(4);
+                }else{
+                    generatedCommandCode += "\tmov EAX,[M + " +atributoPai.endereco +"]; \t\t\t move valor da memoria para um registrador\n";
+                    generatedCommandCode += "\tmov EBX,[M + " +atributoE.endereco +"]; \t\t\t move valor da memoria para um registrador\n";
+                    generatedCommandCode += "\timul EAX, EBX; \t\t\t multiplica os valores\n";
+                    generatedCommandCode += "\tmov [M + " + tempCounter +"], EAX; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                    atributoPai.endereco = tempCounter;
+                    moveTC(4);
+                }
+
+            }
+            case "/" -> {
+                boolean flagReal = false;
+
+                if( atributoE.tipo.equals("integer") )
+                    integer2real(atributoE);
+                if( atributoPai.tipo.equals("integer") )
+                    integer2real(atributoPai);
+
+
+                generatedCommandCode += "\tmovss XMM0,[M + " +atributoPai.endereco +"]; \t\t\t move valor da memoria para um registrador\n";
+                generatedCommandCode += "\tmovss XMM1,[M + " +atributoE.endereco +"]; \t\t\t move valor da memoria para um registrador\n";
+                generatedCommandCode += "\tdivss XMM0, XMM1; \t\t\t divide os valores\n";
+                generatedCommandCode += "\tmovss [M + " + tempCounter +"], XMM0; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                moveTC(4);
+            }
+            case "and" -> {
+
+                generatedCommandCode += "\tmov AL,[M +" + atributoPai.endereco +"]; \t\t\t move valor da constante para um registrador\n";
+                generatedCommandCode += "\tmov BL,[M +" + atributoE.endereco +"]; \t\t\t move valor da constante para um registrador\n";
+                generatedCommandCode += "\timul AL, BL; \t\t\t AND é o mesmo que multiplicacao 1*0 = 0 1*1 = 1\n";
+                generatedCommandCode += "\tmov [M + " + tempCounter +"], AL; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                atributoPai.endereco = tempCounter;
+                moveTC(1);
+            }
+            case "mod" -> {
+                generatedCommandCode += "\tmov EAX,[M + " +atributoPai.endereco +"]; \t\t\t move valor da memoria para um registrador\n";
+                generatedCommandCode += "\tmov EBX,[M + " +atributoE.endereco +"]; \t\t\t move valor da memoria para um registrador\n";
+                generatedCommandCode += "\tcdq; \t\t\t move valor da memoria para um registrador\n";
+                generatedCommandCode += "\tidiv EBX; \t\t\t multiplica os valores\n";
+                generatedCommandCode += "\tmov [M + " + tempCounter +"], EDX; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                atributoPai.endereco = tempCounter;
+                moveTC(4);
+            }
+            case "div" -> {
+                generatedCommandCode += "\tmov EAX,[M + " +atributoPai.endereco +"]; \t\t\t move valor da memoria para um registrador\n";
+                generatedCommandCode += "\tmov EBX,[M + " +atributoE.endereco +"]; \t\t\t move valor da memoria para um registrador\n";
+                generatedCommandCode += "\tcdq; \t\t\t move valor da memoria para um registrador\n";
+                generatedCommandCode += "\tidiv EBX; \t\t\t multiplica os valores\n";
+                generatedCommandCode += "\tmov [M + " + tempCounter +"], EAX; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                atributoPai.endereco = tempCounter;
+                moveTC(4);
+            }
+        }
+    }
+
+    public static void operacoesSimples(AtributoHerdado atributoPai, AtributoHerdado atributoE, AtributoOperacao op) {
+        switch (op.op) {
+            case "+" -> {
+                boolean flagReal = false;
+                if(atributoPai.tipo.equals("real")||atributoE.tipo.equals("real")){
+                    if( atributoE.tipo.equals("integer") )
+                        integer2real(atributoE);
+                    if( atributoPai.tipo.equals("integer") )
+                        integer2real(atributoPai);
+                    flagReal = true;
+                }
+                if(flagReal) {
+                    generatedCommandCode += "\tmovss XMM0,[M + " + atributoPai.endereco + "]; \t\t\t move valor da memoria para um registrador\n";
+                    generatedCommandCode += "\tmovss XMM1,[M + " + atributoE.endereco + "]; \t\t\t move valor da memoria para um registrador\n";
+                    generatedCommandCode += "\taddss XMM0, XMM1; \t\t\t soma os valores\n";
+                    generatedCommandCode += "\tmovss [M + " + tempCounter + "], XMM0; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                    atributoPai.endereco = tempCounter;
+                    moveTC(4);
+                }else{
+                    generatedCommandCode += "\tmov EAX,[M + " +atributoPai.endereco +"]; \t\t\t move valor da memoria para um registrador\n";
+                    generatedCommandCode += "\tmov EBX,[M + " +atributoE.endereco +"]; \t\t\t move valor da memoria para um registrador\n";
+                    generatedCommandCode += "\tadd EAX, EBX; \t\t\t soma os valores\n";
+                    generatedCommandCode += "\tmov [M + " + tempCounter +"], EAX; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                    atributoPai.endereco = tempCounter;
+                    moveTC(4);
+                }
+
+            }
+            case "-" -> {
+                boolean flagReal = false;
+                if(atributoPai.tipo.equals("real")||atributoE.tipo.equals("real")){
+                    if( atributoE.tipo.equals("integer") )
+                        integer2real(atributoE);
+                    if( atributoPai.tipo.equals("integer") )
+                        integer2real(atributoPai);
+                    flagReal = true;
+                }
+                if(flagReal) {
+                    generatedCommandCode += "\tmovss XMM0,[M + " + atributoPai.endereco + "]; \t\t\t move valor da memoria para um registrador\n";
+                    generatedCommandCode += "\tmovss XMM1,[M + " + atributoE.endereco + "]; \t\t\t move valor da memoria para um registrador\n";
+                    generatedCommandCode += "\tsubss XMM0, XMM1; \t\t\t soma os valores\n";
+                    generatedCommandCode += "\tmovss [M + " + tempCounter + "], XMM0; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                    atributoPai.endereco = tempCounter;
+                    moveTC(4);
+                }else{
+                    generatedCommandCode += "\tmov EAX,[M + " +atributoPai.endereco +"]; \t\t\t move valor da memoria para um registrador\n";
+                    generatedCommandCode += "\tmov EBX,[M + " +atributoE.endereco +"]; \t\t\t move valor da memoria para um registrador\n";
+                    generatedCommandCode += "\tsub EAX, EBX; \t\t\t soma os valores\n";
+                    generatedCommandCode += "\tmov [M + " + tempCounter +"], EAX; \t\t\t move valor do registrador para endereco de memoria temporaria\n";
+                    atributoPai.endereco = tempCounter;
+                    moveTC(4);
+                }
+            }
+            case "or" -> {
+                //a+b - a*b
+                generatedCommandCode += "\tmov AL,[M +" + atributoPai.endereco +"]; \t\t\t move valor da memoria para um registrador\n";
+                generatedCommandCode += "\tmov BL,[M +" + atributoE.endereco +"]; \t\t\t \n";
+                generatedCommandCode += "\tmov CL,[M +" + atributoPai.endereco +"]; \t\t\t \n";
+                generatedCommandCode += "\tmov DL,[M +" + atributoE.endereco +"]; \t\t\t \n";
+                generatedCommandCode += "\timul BL; \t\t\t\n";
+                generatedCommandCode += "\tadd CL, DL; \t\t\t \n";
+                generatedCommandCode += "\tsub CL, AL; \t\t\t \n";
+                generatedCommandCode += "\tmov [M + " + tempCounter +"], CL; \t\t\t\n";
+                atributoPai.endereco = tempCounter;
+                moveTC(1);
+            }
+        }
+    }
+
+    public static void comparacoes(AtributoHerdado atributoPai, AtributoHerdado atributoE, AtributoOperacao op) {
+        switch (op.op) {
+            case "+" -> {
+
+            }
+            case "-" -> {
+
+            }
+            case "or" -> {
+
+            }
+        }
+    }
+
 }
 

@@ -1,4 +1,8 @@
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 
 public class LC {
     AnalisadorSintatico analisadorSintatico;
@@ -17,7 +21,10 @@ public class LC {
                 LC programa = new LC(arqL);
 
                 try {
-                    programa.analisadorSintatico.analisar();
+                    String codigoGerado = programa.analisadorSintatico.analisar();
+
+                    gerarArquivo(args[1], codigoGerado);
+
                 }
                 catch(LexicalException | SyntaticException | IOException | SemanticalException e){
                     System.out.println(e.getMessage());
@@ -37,5 +44,13 @@ public class LC {
                         " programa ASSEMBLY (extensão .ASM) a ser gerado");
         }
 
+    }
+
+    private static void gerarArquivo(String fileName, String codigoGerado) throws IOException {
+        File arquivoGerado = new File("src/" + fileName);
+        arquivoGerado.createNewFile();
+        FileOutputStream fos = new FileOutputStream(arquivoGerado, false);
+
+        fos.write(codigoGerado.getBytes(StandardCharsets.UTF_8));
     }
 }

@@ -10,7 +10,7 @@ public class AnalisadorSintatico {
         analisadorLexico = new AnalisadorLexico(caminhoArquivo);
     }
 
-    public void analisar() throws LexicalException, IOException, SyntaticException, SemanticalException {
+    public String analisar() throws LexicalException, IOException, SyntaticException, SemanticalException {
         GeradorCodigo.initialize();
 
         reg = analisadorLexico.analisar();
@@ -18,7 +18,7 @@ public class AnalisadorSintatico {
 
         System.out.println(analisadorLexico.linhaAtual + " linhas compiladas");
 
-        System.out.println(GeradorCodigo.finalizeCode());
+        return GeradorCodigo.finalizeCode();
     }
 
     public void CasaToken(String tokenEsperado) throws IOException, LexicalException, SyntaticException {
@@ -52,6 +52,7 @@ public class AnalisadorSintatico {
 
     // E -> E1 [( = | <> | < | <= | >= | > ) E1]
     public void E(AtributoHerdado atributoPai) throws LexicalException, IOException, SyntaticException, SemanticalException {
+        GeradorCodigo.resetTC();
         
         AtributoHerdado atributoE1_1 = new AtributoHerdado();
         
@@ -117,6 +118,7 @@ public class AnalisadorSintatico {
             s28(atributoOperacao, op);
             E2(atributoE2_2);
             s29(atributoOperacao,atributoPai,atributoE2_2);
+            GeradorCodigo.operacoesSimples(atributoPai, atributoE2_2, atributoOperacao);
             s32(atributoPai,atributoE2_2,atributoOperacao);
         }
 
@@ -142,18 +144,21 @@ public class AnalisadorSintatico {
             s25(op,_op);
             E3(atributoE3_2);
             s26(op,atributoPai,atributoE3_2);
+            GeradorCodigo.operacoesComplexas(atributoPai, atributoE3_2, op);
             s31(atributoPai, atributoE3_1, op);
+
         }
     }
 
     // E3 -> not E4 | E4
-    public void E3(AtributoHerdado atributoPai) throws LexicalException, IOException, SyntaticException, SemanticalException {
+    public void E3  (AtributoHerdado atributoPai) throws LexicalException, IOException, SyntaticException, SemanticalException {
         AtributoHerdado atributoE4 = new AtributoHerdado();
 
         if(reg.token.nome.equals("not")  ) {
             CasaToken("not");
             E4(atributoE4);
             s22(atributoE4);
+            GeradorCodigo.not(atributoE4);
             s21(atributoPai, atributoE4);
         }else{
             E4(atributoE4);
@@ -170,6 +175,7 @@ public class AnalisadorSintatico {
             CasaToken("(");
             E5(atributoE5);
             s17(atributoE5);
+            GeradorCodigo.real2integer(atributoE5);
             CasaToken(")");
             s19(atributoPai,atributoE5);
         }else if(reg.token.nome.equals("real")){
@@ -177,6 +183,7 @@ public class AnalisadorSintatico {
             CasaToken("(");
             E5(atributoE5);
             s17(atributoE5);
+            GeradorCodigo.integer2real(atributoE5);
             CasaToken(")");
             s20(atributoPai,atributoE5);
         }
@@ -194,14 +201,17 @@ public class AnalisadorSintatico {
         switch (_reg.token.nome) {
             case "CONST" -> {
                 CasaToken("CONST");
+                GeradorCodigo.lerConst(_reg);
                 s13(atributoPai, _reg);
             }
             case "true" -> {
                 CasaToken("true");
+                GeradorCodigo.lerConst(_reg);
                 s14(atributoPai, _reg);
             }
             case "false" -> {
                 CasaToken("false");
+                GeradorCodigo.lerConst(_reg);
                 s14(atributoPai, _reg);
             }
             case "ID" -> {
@@ -212,6 +222,8 @@ public class AnalisadorSintatico {
                     CasaToken("[");
                     E(atributoE);
                     CasaToken("]");
+                }else{
+                    GeradorCodigo.lerId(_reg);
                 }
             }
             case "(" -> {
@@ -268,7 +280,7 @@ public class AnalisadorSintatico {
             CasaToken("CONST");
 
             s10(id, constReg);
-            GeradorCodigo.writeInteger(constReg.valorConst, id.lexema.endereco);
+            GeradorCodigo.writeReal(constReg.valorConst, id.lexema.endereco);
         }
 
         if(reg.token.nome.equals(",")){
@@ -347,6 +359,7 @@ public class AnalisadorSintatico {
             CasaToken("CONST");
 
             s10(id, constReg);
+            GeradorCodigo.writeChar(constReg.valorConst, id.lexema.endereco);
         }
         if(reg.token.nome.equals(",")){
             H1();
@@ -404,7 +417,9 @@ public class AnalisadorSintatico {
         RegistroLexico constReg = reg;
         CasaToken("CONST");
         s41(id, constReg);
-        id.lexema.endereco = GeradorCodigo.declareFinal(reg);
+
+        id.lexema.endereco = GeradorCodigo.declareFinal(id);
+        GeradorCodigo.writeFinal(constReg.valorConst, id.lexema.endereco, id.lexema.tipo);
 
         if(reg.token.nome.equals(",")){
             H3();
@@ -473,6 +488,7 @@ public class AnalisadorSintatico {
             CasaToken("ID");
             s1(id);
             s5(id);
+            id.lexema.endereco = GeradorCodigo.declareInteger();
 
             if (reg.token.nome.equals("[")) {
                 CasaToken("[");
@@ -505,6 +521,8 @@ public class AnalisadorSintatico {
             CasaToken("ID");
             s1(id);
             s7(id);
+            id.lexema.endereco = GeradorCodigo.declareChar();
+
             if (reg.token.nome.equals("[")) {
                 CasaToken("[");
                 s42(id);
@@ -520,6 +538,7 @@ public class AnalisadorSintatico {
                 RegistroLexico constReg = reg;
                 CasaToken("CONST");
                 s10(id,constReg);
+                GeradorCodigo.writeChar(constReg.valorConst, id.lexema.endereco);
             }
         } while (reg.token.nome.equals(","));
     }
@@ -533,6 +552,7 @@ public class AnalisadorSintatico {
             CasaToken("ID");
             s1(id);
             s8(id);
+            id.lexema.endereco = GeradorCodigo.declareBoolean();
             if (reg.token.nome.equals("[")) {
                 CasaToken("[");
                 s42(id);
@@ -550,6 +570,7 @@ public class AnalisadorSintatico {
                 I(I);
 
                 s37(id,I);
+                GeradorCodigo.writeBoolean(I.valor, id.lexema.endereco);
             }
         } while (reg.token.nome.equals(","));
     }
@@ -567,6 +588,9 @@ public class AnalisadorSintatico {
             RegistroLexico constReg = reg;
             CasaToken("CONST");
             s41(id, constReg);
+
+            id.lexema.endereco = GeradorCodigo.declareFinal(id);
+            GeradorCodigo.writeFinal(constReg.valorConst, id.lexema.endereco, id.lexema.tipo);
         } while (reg.token.nome.equals(","));
     }
 
@@ -578,7 +602,7 @@ public class AnalisadorSintatico {
             CasaToken("ID");
             s1(id);
             s6(id);
-
+            id.lexema.endereco = GeradorCodigo.declareReal();
 
             if (reg.token.nome.equals("[")) {
                 CasaToken("[");
@@ -624,6 +648,7 @@ public class AnalisadorSintatico {
                 RegistroLexico constReg = reg;
                 CasaToken("CONST");
                 s10(id,constReg);
+                GeradorCodigo.writeBoolean(constReg.valorConst, id.lexema.endereco);
             }
         } while (reg.token.nome.equals(","));
     }
@@ -657,16 +682,37 @@ public class AnalisadorSintatico {
         AtributoHerdado E = new AtributoHerdado();
 
         if(reg.token.nome.equals("for")){
+            String ROT1 =   GeradorCodigo.getNextRot(),
+                    ROT2 =   GeradorCodigo.getNextRot(),
+                    ROT3 =   GeradorCodigo.getNextRot(),
+                    ROT4 =   GeradorCodigo.getNextRot();
+
             CasaToken("for");
             CasaToken("(");
             C0();
             CasaToken(";");
+
+            GeradorCodigo.inicioTesteFor(ROT1);
+
             E(E);
             s39(E);
+
+            GeradorCodigo.fimTesteFor(ROT2,ROT3,ROT4);
+
             CasaToken(";");
+
+            GeradorCodigo.inicioIncrementFor(ROT3);
+
             C0();
+
+            GeradorCodigo.fimIncrementFor(ROT1);
+
             CasaToken(")");
+
+            GeradorCodigo.inicioBlocoFor(ROT2);
             A();
+
+            GeradorCodigo.fimBlocoFor(ROT3,ROT4);
         }else{
             CasaToken("if");
             CasaToken("(");
@@ -683,6 +729,8 @@ public class AnalisadorSintatico {
 
     }
 
+    int end = 0x10000;
+
     // C2 -> readln '(' [-]id ')' | write '(' E [G] ')' | writeln '(' E [G] ')'
     public void C2() throws LexicalException, IOException, SyntaticException, SemanticalException {
         switch (reg.token.nome) {
@@ -693,6 +741,9 @@ public class AnalisadorSintatico {
                 CasaToken("ID");
                 s3(id);
                 s4(id);
+
+                GeradorCodigo.read(end, id.lexema.tipo);
+
                 CasaToken(")");
             }
             case "write" -> {
@@ -706,7 +757,8 @@ public class AnalisadorSintatico {
                     G();
                 }
 
-                GeradorCodigo.printInteger(0x1003);
+                GeradorCodigo.print(end, E.tipo, false);
+                end += 8;
 
                 CasaToken(")");
             }
@@ -720,6 +772,9 @@ public class AnalisadorSintatico {
                 if (reg.token.nome.equals(",")) {
                     G();
                 }
+
+                GeradorCodigo.print(end, E.tipo, true);
+                end += 8;
 
                 CasaToken(")");
             }
@@ -749,6 +804,7 @@ public class AnalisadorSintatico {
         CasaToken("=");
 
         E(E);
+        GeradorCodigo.atribuicaoEx(id,E);
         s40(id, E, constReg);
     }
 
@@ -836,6 +892,7 @@ public class AnalisadorSintatico {
     public void s11(AtributoHerdado I, RegistroLexico con) {
         I.tipo = con.tipoConst;
         I.nome = con.valorConst;
+        I.valor = con.valorConst;
     }
 
     public void s12(RegistroLexico id, RegistroLexico con) throws SemanticalException {
@@ -847,6 +904,7 @@ public class AnalisadorSintatico {
     public void s13(AtributoHerdado atributoPai, RegistroLexico _reg) {
         atributoPai.tipo = _reg.tipoConst;
         atributoPai.nome = _reg.token.nome.equals("CONST")? _reg.valorConst : _reg.lexema.nome;
+        atributoPai.endereco = _reg.endConst;
     }
 
     public void s14(AtributoHerdado atributoPai, RegistroLexico _reg) {
@@ -876,10 +934,12 @@ public class AnalisadorSintatico {
         E4.tipo = E5.tipo;
         E4.nome = E5.nome;
         E4.endereco = E5.endereco;
+
     }
 
     public void s19(AtributoHerdado E4, AtributoHerdado E5) throws SemanticalException {
         E4.tipo = "integer";
+        E4.nome = E5.nome;
 //        float valor =  Float.parseFloat(E5.valor);
 //        int vFinal = (int)valor;
 //        E4.valor = Integer.toString(vFinal);
@@ -887,6 +947,7 @@ public class AnalisadorSintatico {
 
     public void s20(AtributoHerdado E4, AtributoHerdado E5) throws SemanticalException {
         E4.tipo = "real";
+        E4.nome = E5.nome;
 //        float vFinal =  Float.parseFloat(E5.valor);
 //        E4.valor = Float.toString(vFinal);
     }
@@ -1018,11 +1079,7 @@ public class AnalisadorSintatico {
                     E2.tipo = "real";
                 }
             }
-            case "/" -> {
-                if (E2.tipo.equals("real") || E3_1.tipo.equals("real")) {
-                    E2.tipo = "real";
-                }
-            }
+            case "/" -> E2.tipo = "real";
             case "and" -> E2.tipo = "boolean";
             case "mod" -> E2.tipo = "integer";
             case "div" -> E2.tipo = "integer";

@@ -1,7 +1,7 @@
 { Exemplo de Programa na linguagem L }
 
-integer n = 3;
-integer b = 4;
+real r = 2.0;
+integer n;
+n = integer(r);
 
-write(n);
-write(b);
+writeln(r);
