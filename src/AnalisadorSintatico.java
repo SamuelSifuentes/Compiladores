@@ -78,6 +78,7 @@ public class AnalisadorSintatico {
             AtributoHerdado atributoE1_2 = new AtributoHerdado();
             E1(atributoE1_2);
             s35(atributoOperacao, atributoPai, atributoE1_2);
+//            GeradorCodigo.comparacoes(atributoPai, atributoE1_2, atributoOperacao);
             s36(atributoPai);
         }
 
@@ -175,7 +176,7 @@ public class AnalisadorSintatico {
             CasaToken("(");
             E5(atributoE5);
             s17(atributoE5);
-            GeradorCodigo.real2integer(atributoE5);
+             GeradorCodigo.real2integer(atributoE5);
             CasaToken(")");
             s19(atributoPai,atributoE5);
         }else if(reg.token.nome.equals("real")){
@@ -183,7 +184,7 @@ public class AnalisadorSintatico {
             CasaToken("(");
             E5(atributoE5);
             s17(atributoE5);
-            GeradorCodigo.integer2real(atributoE5);
+             GeradorCodigo.integer2real(atributoE5);
             CasaToken(")");
             s20(atributoPai,atributoE5);
         }
@@ -201,7 +202,7 @@ public class AnalisadorSintatico {
         switch (_reg.token.nome) {
             case "CONST" -> {
                 CasaToken("CONST");
-                GeradorCodigo.lerConst(_reg);
+                 GeradorCodigo.lerConst(_reg);
                 s13(atributoPai, _reg);
             }
             case "true" -> {
@@ -223,7 +224,7 @@ public class AnalisadorSintatico {
                     E(atributoE);
                     CasaToken("]");
                 }else{
-                    GeradorCodigo.lerId(_reg);
+                     GeradorCodigo.lerId(_reg);
                 }
             }
             case "(" -> {
@@ -280,7 +281,7 @@ public class AnalisadorSintatico {
             CasaToken("CONST");
 
             s10(id, constReg);
-            GeradorCodigo.writeReal(constReg.valorConst, id.lexema.endereco);
+            GeradorCodigo.writeInteger(constReg.valorConst, id.lexema.endereco);
         }
 
         if(reg.token.nome.equals(",")){
@@ -697,7 +698,7 @@ public class AnalisadorSintatico {
             E(E);
             s39(E);
 
-            GeradorCodigo.fimTesteFor(ROT2,ROT3,ROT4);
+            GeradorCodigo.fimTesteFor(ROT2,ROT3,ROT4,E);
 
             CasaToken(";");
 
@@ -714,16 +715,21 @@ public class AnalisadorSintatico {
 
             GeradorCodigo.fimBlocoFor(ROT3,ROT4);
         }else{
+            String ROT1 =   GeradorCodigo.getNextRot(),
+                    ROT2 =   GeradorCodigo.getNextRot();
             CasaToken("if");
             CasaToken("(");
             E(E);
             s39(E);
+            GeradorCodigo.fimTesteIf(ROT1,E);
             CasaToken(")");
             A();
-
+            GeradorCodigo.fimBlocoIf(ROT2);
             if(reg.token.nome.equals("else")){
+                GeradorCodigo.inicioElse(ROT1);
                 CasaToken("else");
                 A();
+                GeradorCodigo.fimElse(ROT2);
             }
         }
 
@@ -757,8 +763,8 @@ public class AnalisadorSintatico {
                     G();
                 }
 
-                GeradorCodigo.print(end, E.tipo, false);
-                end += 8;
+                GeradorCodigo.print(E.endereco, E.tipo, false);
+
 
                 CasaToken(")");
             }
@@ -773,8 +779,7 @@ public class AnalisadorSintatico {
                     G();
                 }
 
-                GeradorCodigo.print(end, E.tipo, true);
-                end += 8;
+                GeradorCodigo.print(E.endereco, E.tipo, true);
 
                 CasaToken(")");
             }
@@ -804,7 +809,7 @@ public class AnalisadorSintatico {
         CasaToken("=");
 
         E(E);
-        GeradorCodigo.atribuicaoEx(id,E);
+         GeradorCodigo.atribuicaoEx(id,E);
         s40(id, E, constReg);
     }
 

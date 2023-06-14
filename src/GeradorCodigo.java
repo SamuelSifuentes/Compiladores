@@ -120,7 +120,7 @@ public class GeradorCodigo {
     }
 
     public static void writeBoolean(String value, long varAddr){
-        generatedDeclarationCode += "dd" + (value.equals("true")? 1 : 0) + "\n";
+        generatedDeclarationCode += "dd " + (value.equals("true")? 1 : 0) + "\n";
         long constAddr = PC;
 
         movePC(1);
@@ -445,15 +445,30 @@ public class GeradorCodigo {
     }
 
 
+    public static void fimTesteIf(String ROT1,AtributoHerdado E){
+
+        generatedCommandCode += "\tmov AL,[ M+"+ E.endereco +"] \t\t\t ; \n";
+        generatedCommandCode += "\tcmp AL, 1 \t\t\t ; \n";
+        generatedCommandCode += "\tjne " + ROT1 + " \t\t\t ; \n";
+    }
+    public static void fimBlocoIf(String ROT2){
+        generatedCommandCode += "\tjmp " + ROT2 + " \t\t\t ; \n";
+    }
+    public static void inicioElse(String ROT1){
+        generatedCommandCode += ROT1+ ":\n";
+    }
+    public static void fimElse(String ROT2){
+        generatedCommandCode += ROT2+ ":\n";
+    }
     public static void inicioTesteFor(String ROT1){
         generatedCommandCode += ROT1+ ":\n";
     }
-    public static void fimTesteFor(String ROT2,String ROT3,String ROT4){
+    public static void fimTesteFor(String ROT2,String ROT3,String ROT4,AtributoHerdado E){
 
-        generatedCommandCode += "\tcmp EAX, 1 \t\t\t ; \n"; // TODO VERIFICAR DE ONDE O VALOR BOLEANO VAI VIR
+        generatedCommandCode += "\tmov AL,[ M+"+ E.endereco +"] \t\t\t ; \n";
+        generatedCommandCode += "\tcmp AL, 1 \t\t\t ; \n";
         generatedCommandCode += "\tje " + ROT2 + " \t\t\t ; \n";
         generatedCommandCode += "\tjmp " + ROT4 + " \t\t\t ; \n";
-        generatedCommandCode += ROT3+ ":\n";
     }
     public static void inicioIncrementFor(String ROT3){
         generatedCommandCode += ROT3+ ":\n";
@@ -722,19 +737,80 @@ public class GeradorCodigo {
         }
     }
 
-    public static void comparacoes(AtributoHerdado atributoPai, AtributoHerdado atributoE, AtributoOperacao op) {
-        switch (op.op) {
-            case "+" -> {
+//   public static void comparacoes(AtributoHerdado atributoPai, AtributoHerdado atributoE, AtributoOperacao op) {
+//        if(atributoPai.tipo.equals("char") && atributoE.tipo.equals("char")){
+//            compChars(atributoPai, atributoE, op);
+//        } else if(atributoPai.tipo.equals("integer") && atributoE.tipo.equals("integer")){
+//            compIntegers(atributoPai, atributoE, op);
+//        } else if(atributoPai.tipo.equals("real") && atributoE.tipo.equals("real")){
+//            compReal(atributoPai, atributoE, op);
+//        } else if(atributoPai.tipo.equals("integer") && atributoE.tipo.equals("real")){
+//            compIntReal(atributoPai, atributoE, op);
+//            if(atributoPai.tipo.equals("real") && atributoE.tipo.equals("integer")){
+//            compRealInt(atributoPai, atributoE, op);
+//            }
+//        }
+//
+//}
 
-            }
-            case "-" -> {
 
-            }
-            case "or" -> {
+//    private static long compChars(AtributoHerdado atributoPai, AtributoHerdado atributoE, AtributoOperacao op) {
+//        long memPos = tempCounter;
+//
+//        String labelTrue = getNextRot();
+//        String labelEnd = getNextRot();
+//
+//        generatedCommandCode += "\tmov AL, [ M + " + atributoPai.endereco + " ]\n";
+//        generatedCommandCode += "\tmov BL, [ M + " + atributoE.endereco + " ]\n";
+//        generatedCommandCode += "\tcmp AL, BL\n";
+//
+//        switch (op.op) {
+//            case "==" -> generatedCommandCode += "\tje " + labelTrue + "\n";
+//            case ">" -> generatedCommandCode += "\tjg " + labelTrue + "\n";
+//            case ">=" -> generatedCommandCode += "\tjge " + labelTrue + "\n";
+//            case "<" -> generatedCommandCode += "\tjl " + labelTrue + "\n";
+//            case "<=" -> generatedCommandCode += "\tjle " + labelTrue + "\n";
+//            case "<>" -> generatedCommandCode += "\tjne " + labelTrue + "2\n";
+//        }
+//
+//        generatedCommandCode += "\tmov EAX, 0\n";
+//        generatedCommandCode += "\tjmp " + labelEnd;
+//        generatedCommandCode += "\n" + labelTrue + ":\n";
+//        generatedCommandCode += "\tmov EAX, 1\n";
+//        generatedCommandCode += labelEnd + ":\n";
+//        generatedCommandCode += "\tmov [ M + " + tempCounter + " ], EAX\n";
+//
+//        return memPos;
+//    }
 
-            }
-        }
-    }
 
+//    private static long compChars(AtributoHerdado atributoPai, AtributoHerdado atributoE, AtributoOperacao op) {
+//        long memPos = tempCounter;
+//
+//        String labelTrue = getNextRot();
+//        String labelEnd = getNextRot();
+//
+//        generatedCommandCode += "\tmov AL, [ M + " + atributoPai.endereco + " ]\n";
+//        generatedCommandCode += "\tmov BL, [ M + " + atributoE.endereco + " ]\n";
+//        generatedCommandCode += "\tcmp AL, BL\n";
+//
+//        switch (op.op) {
+//            case "==" -> generatedCommandCode += "\tje " + labelTrue + "\n";
+//            case ">" -> generatedCommandCode += "\tjg " + labelTrue + "\n";
+//            case ">=" -> generatedCommandCode += "\tjge " + labelTrue + "\n";
+//            case "<" -> generatedCommandCode += "\tjl " + labelTrue + "\n";
+//            case "<=" -> generatedCommandCode += "\tjle " + labelTrue + "\n";
+//            case "<>" -> generatedCommandCode += "\tjne " + labelTrue + "2\n";
+//        }
+//
+//        generatedCommandCode += "\tmov EAX, 0\n";
+//        generatedCommandCode += "\tjmp " + labelEnd;
+//        generatedCommandCode += "\n" + labelTrue + ":\n";
+//        generatedCommandCode += "\tmov EAX, 1\n";
+//        generatedCommandCode += labelEnd + ":\n";
+//        generatedCommandCode += "\tmov [ M + " + tempCounter + " ], EAX\n";
+//
+//        return memPos;
+//    }
 }
 

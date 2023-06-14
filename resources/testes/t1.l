@@ -1,7 +1,16 @@
 { Exemplo de Programa na linguagem L }
 
-real r = 2.0;
-integer n;
-n = integer(r);
+integer i = 10;
 
-writeln(r);
+boolean t = false;
+
+writeln(i);
+
+if(t) begin
+    writeln(i);
+end
+else begin
+    i = 2;
+    writeln(i);
+end
+
